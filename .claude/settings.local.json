@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST http://localhost:3000/chat -H \"Content-Type: application/json\" -d \"{\\\\\"message\\\\\":\\\\\"hello\\\\\"}\")",
+      "Bash(npx kill-port *)",
+      "Bash(node server.js)",
+      "Bash(curl -s -X POST http://localhost:3000/chat -H \"Content-Type: application/json\" -d \"{\\\\\"message\\\\\":\\\\\"how are you\\\\\"}\")",
+      "Bash(grep -n \"\\\\\\\\bdin\\\\\\\\b\\\\|\\\\\\\\bdins\\\\\\\\b\\\\|Dinach\\\\|dinac\\\\|दिवस\" \"/c/Users/Rushikesh/Desktop/new new app/index.html\")",
+      "Bash(curl -s http://localhost:3000/tts -X POST -H \"Content-Type: application/json\" -d '{\"text\":\"test\"}')",
+      "Bash(node --check server.js)",
+      "Bash(curl -s \"https://v6.db.transport.rest/locations?query=Frankfurt+Flughafen+Fernbahnhof&results=3\")",
+      "Bash(curl -s \"https://v6.db.transport.rest/locations?query=Frankfurt+Hbf&results=3\")",
+      "Bash(curl -s \"https://v6.db.transport.rest/locations?query=Marburg+Lahn&results=3\")",
+      "Bash(curl -s \"https://v6.db.transport.rest/journeys?from=8070003&to=8000240&results=4&stopovers=false&remarks=false&language=en\")",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s \"https://v6.db.transport.rest/journeys?from=8070003&to=8000240&results=4&stopovers=false&remarks=false&language=en\" -o \"C:/Users/Rushikesh/Desktop/journeys.json\")",
+      "Bash(netstat -ano)",
+      "Bash(awk '{print $5}')",
+      "Bash(xargs -I{} taskkill //PID {} //F)",
+      "Bash(taskkill //PID 19176 //F)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X POST http://localhost:3000/tts -H \"Content-Type: application/json\" -d \"{\\\\\"text\\\\\":\\\\\"test\\\\\"}\")",
+      "Bash(curl -s -X POST http://localhost:3000/tts -H \"Content-Type: application/json\" -d \"{\\\\\"text\\\\\":\\\\\"test\\\\\"}\" -o test_audio.mp3 -w \"\\\\nContent-Type: %{content_type}\\\\nSize: %{size_download} bytes\")"
+    ]
+  }
+}
