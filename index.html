@@ -4413,6 +4413,52 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
 
 
   <!-- ══════════════ NEXT VISIT ══════════════ -->
+  <div class="screen" id="s-next-visit">
+    <div class="top-bar">
+      <button class="back-btn" onclick="go('home')">←</button>
+      <span class="top-title">✈️ Next Visit</span>
+      <span></span>
+    </div>
+    <div style="padding:20px 16px 100px">
+
+      <!-- Countdown card -->
+      <div style="background:linear-gradient(135deg,#141414,#2A2A2A,#B8860B);border-radius:24px;padding:28px 20px;text-align:center;margin-bottom:18px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(184,134,11,0.2)"></div>
+        <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Rish येणार आहे</div>
+        <div id="nv-countdown" style="font-family:'Playfair Display',serif;font-size:52px;font-weight:700;color:#FFCE00;line-height:1;margin-bottom:6px">--</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:18px">days to go ❤️</div>
+        <div id="nv-date-display" style="font-size:12px;color:rgba(255,255,255,0.4)">No date set yet</div>
+      </div>
+
+      <!-- Set date -->
+      <div style="background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">📅 Visit Date सेट कर</div>
+        <input type="date" id="nv-date-input" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;font-size:15px;font-family:'Nunito',sans-serif;box-sizing:border-box;margin-bottom:10px">
+        <button onclick="saveNextVisit()" style="width:100%;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:14px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">Set Date ❤️</button>
+      </div>
+
+      <!-- Things to do together -->
+      <div style="background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">💛 Together list</div>
+        <div id="nv-together-list" style="margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="nv-together-input" placeholder="Kahi karu saath madhe…" style="flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;font-size:13px;font-family:'Nunito',sans-serif">
+          <button onclick="addTogetherItem()" style="padding:10px 14px;border-radius:10px;border:none;background:#CC0000;color:#fff;font-size:16px;cursor:pointer">+</button>
+        </div>
+      </div>
+
+      <!-- Message from Rish -->
+      <div style="background:linear-gradient(135deg,#FFF8D6,#FFFBE6);border-radius:20px;padding:18px">
+        <div style="font-family:'Playfair Display',serif;font-size:14px;color:#141414;font-style:italic;line-height:1.9">
+          Bebu, distance temporary ahe ❤️<br><br>
+          प्रत्येक दिवस जातो म्हणजे एक दिवस कमी होतो — आपण जवळ येतो. तू Germany मध्ये amazing काम करत आहेस, आणि मला खूप अभिमान आहे तुझा.<br><br>
+          लवकरच भेटू. Promise. 🧡
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#B8860B;font-style:italic;text-align:right;font-family:'Playfair Display',serif">— तुझा Rish ❤️</div>
+      </div>
+
+    </div>
+  </div>
 
   <!-- ══════════════ MISSING RISH ══════════════ -->
   <div class="screen" id="s-missing">
@@ -11792,7 +11838,50 @@ if (__origAddTransaction){
   };
 }
 
-function updateHomeNextVisit() {} // removed next-visit section
+function updateHomeNextVisit() {
+  updateNextVisitCountdown();
+  renderTogetherList();
+  const saved = localStorage.getItem('rish_next_visit');
+  if (saved) { const inp = document.getElementById('nv-date-input'); if (inp) inp.value = saved; }
+}
+function saveNextVisit() {
+  const d = document.getElementById('nv-date-input').value;
+  if (!d) return;
+  localStorage.setItem('rish_next_visit', d);
+  updateNextVisitCountdown();
+}
+function updateNextVisitCountdown() {
+  const saved = localStorage.getItem('rish_next_visit');
+  const el = document.getElementById('nv-countdown');
+  const lbl = document.getElementById('nv-date-display');
+  if (!el) return;
+  if (!saved) { el.textContent = '--'; if (lbl) lbl.textContent = 'No date set yet'; return; }
+  const diff = Math.ceil((new Date(saved) - new Date()) / 86400000);
+  el.textContent = diff > 0 ? diff : '🎉';
+  if (lbl) lbl.textContent = diff > 0 ? new Date(saved).toDateString() : 'Today is the day! 🎉';
+}
+function addTogetherItem() {
+  const inp = document.getElementById('nv-together-input');
+  if (!inp || !inp.value.trim()) return;
+  const items = JSON.parse(localStorage.getItem('rish_together') || '[]');
+  items.push(inp.value.trim());
+  localStorage.setItem('rish_together', JSON.stringify(items));
+  inp.value = '';
+  renderTogetherList();
+}
+function renderTogetherList() {
+  const el = document.getElementById('nv-together-list');
+  if (!el) return;
+  const items = JSON.parse(localStorage.getItem('rish_together') || '[]');
+  el.innerHTML = items.map((it, i) => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span style="flex:1;font-size:13px;color:var(--text1)">🧡 ${it}</span><button onclick="removeTogether(${i})" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:16px;cursor:pointer">✕</button></div>`).join('') || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">Kahi add kar saath madhe karayla 💛</div>';
+}
+function removeTogether(i) {
+  const items = JSON.parse(localStorage.getItem('rish_together') || '[]');
+  items.splice(i, 1);
+  localStorage.setItem('rish_together', JSON.stringify(items));
+  renderTogetherList();
+}
+setInterval(updateNextVisitCountdown, 60000);
 
 
 
