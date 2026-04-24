@@ -6616,7 +6616,9 @@ function buildAppContext() {
 }
 
 function _apiBase() {
-  return (window.location.origin.startsWith('file') || window.location.origin === 'null') ? 'http://localhost:3000' : '';
+  if (window.location.origin.startsWith('file') || window.location.origin === 'null') return 'http://localhost:3000';
+  if (window.location.hostname.includes('github.io')) return 'https://rish-backend-production.up.railway.app';
+  return '';
 }
 
 async function rishCallAI() {
@@ -11940,7 +11942,7 @@ async function rishSpeak(text, opts = {}) {
 
   // ── TTS via backend proxy ──
   const _fetchBlob = async () => {
-    const base = window.location.origin.startsWith('file') ? 'http://localhost:3000' : '';
+    const base = _apiBase();
     const res = await fetch(base + '/tts', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
