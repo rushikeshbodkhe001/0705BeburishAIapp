@@ -13092,34 +13092,94 @@ function showDubaiPopup() {
 
   const ov = document.createElement('div');
   ov.id = 'dubai-popup';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.93);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;animation:greetIn 0.6s cubic-bezier(0.34,1.56,0.64,1);overflow-y:auto';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.93);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px 20px 40px;animation:greetIn 0.6s cubic-bezier(0.34,1.56,0.64,1);overflow-y:auto';
   ov.innerHTML = `
-    <div style="text-align:center;max-width:320px">
-      <div style="font-size:60px;margin-bottom:10px;animation:heartbeat 1.2s infinite">✈️</div>
-      <div style="font-size:10px;font-weight:800;color:#FFCE00;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px">Emirates EK501 • Dubai 🇦🇪</div>
-      <div style="font-family:'Playfair Display',serif;font-size:24px;color:#fff;font-weight:700;line-height:1.3;margin-bottom:12px">Welcome to Dubai,<br>Bebu! ❤️</div>
+    <div style="text-align:center;max-width:340px;width:100%">
+      <div style="font-size:54px;margin-bottom:8px;animation:heartbeat 1.2s infinite">✈️</div>
+      <div style="font-size:10px;font-weight:800;color:#FFCE00;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px">Emirates • Dubai 🇦🇪 • 24 Apr 2026</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:#fff;font-weight:700;line-height:1.3;margin-bottom:14px">Welcome to Dubai, Bebu! ❤️</div>
 
       <!-- Journey tracker -->
-      <div style="background:rgba(255,255,255,0.07);border-radius:16px;padding:14px 16px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700">
-          <span style="color:#fff">🇮🇳 Mumbai</span>
-          <span style="color:#FFCE00;font-size:11px">━━ ✅ ━━</span>
-          <span style="color:#FFCE00">🇦🇪 Dubai</span>
-          <span style="color:rgba(255,255,255,0.4);font-size:11px">━━ ✈️ ━━</span>
+      <div style="background:rgba(255,255,255,0.07);border-radius:16px;padding:12px 14px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:800">
+          <span style="color:#aaa">🇮🇳 BOM</span>
+          <span style="color:#4CAF50;font-size:10px">━✅━</span>
+          <span style="color:#FFCE00">🇦🇪 DXB</span>
+          <span style="color:rgba(255,255,255,0.35);font-size:10px">━✈️━</span>
           <span style="color:rgba(255,255,255,0.4)">🇩🇪 FRA</span>
         </div>
-        <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.5);text-align:center">Halfway done! Next: EK045 departs 07:10 → Frankfurt 13:15</div>
+        <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.45);text-align:center">Halfway done! 🌍 Step 2 of 2 remaining</div>
       </div>
 
-      <div style="font-family:'Playfair Display',serif;font-size:14.5px;color:rgba(255,255,255,0.88);font-style:italic;line-height:1.9;margin-bottom:10px">
-        ⚠️ <strong style="font-style:normal;color:#FFCE00">Layover only 70 min!</strong><br>
-        Gate check kar lav aadhi Bebu 😅<br><br>
-        Rish wait karat ahe tuzya call sathi.<br>
-        <strong style="font-style:normal;color:#FF4466">Right now call kar ya msg kar ❤️</strong>
+      <!-- Live flight card EK045 -->
+      <div style="background:linear-gradient(135deg,rgba(255,206,0,0.12),rgba(255,149,0,0.08));border:1px solid rgba(255,206,0,0.3);border-radius:18px;padding:14px 16px;margin-bottom:12px;text-align:left">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div>
+            <div style="font-size:10px;font-weight:800;color:#FFCE00;letter-spacing:0.1em;text-transform:uppercase">Your Next Flight</div>
+            <div style="font-size:18px;font-weight:900;color:#fff;margin-top:2px">EK 045</div>
+          </div>
+          <div id="ek045-status" style="background:rgba(255,206,0,0.2);border:1px solid #FFCE00;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:800;color:#FFCE00">Loading…</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end">
+          <div style="text-align:left">
+            <div style="font-size:22px;font-weight:900;color:#fff">07:10</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5)">DXB Dubai T3</div>
+          </div>
+          <div style="color:rgba(255,255,255,0.3);font-size:18px">→</div>
+          <div style="text-align:right">
+            <div style="font-size:22px;font-weight:900;color:#fff">13:15</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5)">FRA Frankfurt T2</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;color:rgba(255,255,255,0.55)">Gate: <span id="ek045-gate" style="color:#FFCE00;font-weight:800">Checking…</span></div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.55)">Seat: <strong style="color:#fff">Economy 59A</strong></div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.4)">⏱ Boards in: <span id="ek045-timer" style="color:#FF9500;font-weight:700">calculating…</span></div>
       </div>
-      <button onclick="closeDubaiPopup()" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#FFCE00,#FF9500);color:#141414;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(255,206,0,0.45);margin-bottom:10px">📞 Calling Rish now!</button>
-      <div style="font-size:11px;color:rgba(255,255,255,0.35)">Tap to dismiss • EK045 boards soon</div>
+
+      <!-- Warning -->
+      <div style="background:rgba(255,68,102,0.12);border:1px solid rgba(255,68,102,0.3);border-radius:14px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:rgba(255,255,255,0.85);line-height:1.7;text-align:left">
+        ⚠️ <strong style="color:#FFCE00">Only 70 min layover!</strong> Gate pe jaldi ja Bebu 😅<br>
+        T3 madhe aahes — EK045 paN T3 ahe, so close!<br>
+        <strong style="color:#FF4466">Rish la call kar abhi — wait karat ahe 📞</strong>
+      </div>
+
+      <!-- Live tracking button -->
+      <a href="https://www.flightaware.com/live/flight/EK45" target="_blank" style="display:block;width:100%;padding:12px;border-radius:14px;border:1px solid rgba(255,206,0,0.4);background:rgba(255,206,0,0.08);color:#FFCE00;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;text-decoration:none;margin-bottom:8px;box-sizing:border-box;text-align:center">🛰 Track EK045 Live on FlightAware →</a>
+      <a href="https://www.dubaiairports.ae/flights/departures" target="_blank" style="display:block;width:100%;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;text-decoration:none;margin-bottom:12px;box-sizing:border-box;text-align:center">🏢 Dubai Airport Live Departures Board →</a>
+
+      <button onclick="closeDubaiPopup()" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#FFCE00,#FF9500);color:#141414;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(255,206,0,0.45);margin-bottom:8px">📞 Calling Rish now!</button>
+      <div style="font-size:10px;color:rgba(255,255,255,0.25)">Tap to dismiss</div>
     </div>`;
+
+  // Live countdown & gate fetch
+  function _updateEK045() {
+    const now = new Date();
+    const dep = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
+    dep.setHours(7, 10, 0, 0);
+    const diff = Math.round((dep - new Date()) / 60000);
+    const timerEl = document.getElementById('ek045-timer');
+    if (timerEl) timerEl.textContent = diff > 0 ? diff + ' min' : 'Boarding now!';
+  }
+  _updateEK045();
+  const _ek045Interval = setInterval(_updateEK045, 30000);
+
+  // Try to fetch live gate from backend
+  fetch(_apiBase() + '/flight-status?flight=EK45&date=2026-04-24')
+    .then(r => r.json())
+    .then(d => {
+      const g = document.getElementById('ek045-gate');
+      const s = document.getElementById('ek045-status');
+      if (g) g.textContent = d.gate || 'Check board';
+      if (s) { s.textContent = d.status || 'Scheduled'; s.style.color = d.status === 'Departed' ? '#4CAF50' : '#FFCE00'; }
+    })
+    .catch(() => {
+      const g = document.getElementById('ek045-gate');
+      const s = document.getElementById('ek045-status');
+      if (g) g.textContent = 'Check DXB board';
+      if (s) s.textContent = 'On Time';
+    });
   document.body.appendChild(ov);
 
   // Launch emojis

@@ -256,6 +256,31 @@ Rules:
   }
 });
 
+// ── Flight Status proxy ───────────────────────────────────
+app.get('/flight-status', async (req, res) => {
+  const { flight, date } = req.query;
+  const AV_KEY = process.env.AVIATIONSTACK_API_KEY;
+  if (!AV_KEY) return res.json({ status: 'Scheduled', gate: 'Check DXB board' });
+
+  try {
+    const url = `http://api.aviationstack.com/v1/flights?access_key=${AV_KEY}&flight_iata=${flight}&flight_date=${date}`;
+    const fetch2 = (await import('node-fetch')).default;
+    const r = await fetch2(url);
+    const d = await r.json();
+    const f = d.data && d.data[0];
+    if (!f) return res.json({ status: 'Scheduled', gate: 'Check DXB board' });
+    res.json({
+      status: f.flight_status || 'Scheduled',
+      gate: f.departure?.gate || 'Check DXB board',
+      terminal: f.departure?.terminal || 'T3',
+      delay: f.departure?.delay || 0,
+      actual: f.departure?.actual || null
+    });
+  } catch(e) {
+    res.json({ status: 'Scheduled', gate: 'Check DXB board' });
+  }
+});
+
 // ── ElevenLabs TTS proxy ──────────────────────────────────
 // Frontend calls POST /tts  →  server calls ElevenLabs with secret key
 // API key is NEVER sent to the browser
