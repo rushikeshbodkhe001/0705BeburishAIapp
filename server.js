@@ -338,35 +338,34 @@ app.post('/scan-product', async (req, res) => {
       model: 'gpt-4o',
       messages: [{
         role: 'system',
-        content: `You are a world-class German supermarket product identifier for Ankita — an Indian PhD student in Marburg, Germany. She shops at Aldi, Lidl, Rewe, Edeka, Penny.
+        content: `You are a German supermarket product identifier for Ankita — an Indian VEGETARIAN PhD student in Marburg.
 
-Look at the product photo and return ONLY valid JSON (no markdown, no prose) with this exact schema:
+Look at the product photo and return ONLY valid JSON (no markdown) with this EXACT schema:
 {
-  "name": "<concise English product name>",
-  "brand": "<brand if visible, '' if not>",
-  "category": "<food category: dairy/snack/bread/drink/spread/condiment/cereal/sweet/frozen/produce/meat/fish/oil/grain/legume>",
-  "ingredients_en": "<full ingredients list translated to English, comma-separated>",
-  "allergens": ["<allergen1>","<allergen2>"],
+  "name": "<concise English product name, max 5 words>",
+  "brand": "<brand if visible, else ''>",
   "veg_status": "vegan" | "vegetarian" | "non-veg" | "unclear",
-  "nutrition_per_100g": { "energy_kcal":<num|null>, "fat_g":<num|null>, "saturated_fat_g":<num|null>, "carbs_g":<num|null>, "sugar_g":<num|null>, "protein_g":<num|null>, "salt_g":<num|null> },
-  "indian_friendly_notes": "<2 short sentences MAX: warn if it contains pork/beef/gelatin/alcohol; mention if it's a good Indian alternative (e.g. 'Quark = Indian hung curd, great for raita'); say if it's halal-safe; if generic price tier is known (Aldi/Lidl private label = cheap), mention it>",
+  "description": "<TWO short lines, max 25 words total. Line 1: what this product IS in plain English. Line 2: one practical thing she should know — is it veg-safe / good Indian use / warning / similar to which Indian item.>",
   "confidence": "high" | "medium" | "low"
 }
 
 Rules:
-- ALWAYS return valid JSON matching the schema exactly. Use null for unknown numbers, '' for unknown strings, [] for unknown arrays.
-- veg_status: 'vegetarian' includes dairy/eggs but NO meat/fish/gelatin. 'vegan' = no animal products. If it has gelatin/lard/animal rennet → 'non-veg'.
-- For ingredients_en: translate every German ingredient. Don't just say "wheat flour, water" — be complete.
-- indian_friendly_notes: BE SPECIFIC. "Contains pork gelatin — skip if vegetarian." or "Quark is similar to Indian hung curd, perfect for shrikhand or raita." or "Hafer = oats, like Indian dalia."
-- If the image is unclear or not a food product, set name to your best guess and confidence='low'.`
+- description must be EXACTLY 2 short lines separated by \\n. No bullets. No ingredients list. No nutrition numbers.
+- veg_status: 'vegetarian' = dairy/eggs ok but NO meat/fish/gelatin/animal-rennet. If unsure → 'unclear'.
+- DO NOT include ingredients, nutrition, or allergens fields. Just the 5 fields above.
+
+Examples:
+{ "name": "Hazelnut Spread", "brand": "Nutella", "veg_status": "vegetarian", "description": "Sweet chocolate-hazelnut spread for bread.\\nVeg-safe — contains palm oil and milk powder, no animal fat.", "confidence": "high" }
+{ "name": "Pork Salami", "brand": "Aldi", "veg_status": "non-veg", "description": "Cured pork sausage slices.\\n🚫 Skip — contains pork. Not for vegetarians.", "confidence": "high" }
+{ "name": "Quark (Curd Cheese)", "brand": "", "veg_status": "vegetarian", "description": "Soft fresh dairy cheese, similar to Indian hung curd (chakka).\\nGreat for shrikhand, raita, or smoothies.", "confidence": "high" }`
       }, {
         role: 'user',
         content: [
-          { type: 'text', text: 'Identify this product (German supermarket). Translate the label to English. Flag anything an Indian vegetarian should watch for.' },
+          { type: 'text', text: 'Identify this product. Reply with the 5-field JSON only.' },
           { type: 'image_url', image_url: { url: image } }
         ]
       }],
-      max_tokens: 700,
+      max_tokens: 250,
       temperature: 0.2,
       response_format: { type: 'json_object' }
     });

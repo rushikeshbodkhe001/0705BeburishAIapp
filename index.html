@@ -13768,24 +13768,42 @@ function _ofsLocalIdentify(text) {
   const allergens = ofsDetectAllergens(trimmed);
   const veg = ofsIsVeg(trimmed);
 
-  // Build Indian-friendly note from local detection
-  const notes = [];
+  // Build a 2-line description: line 1 = what it is, line 2 = practical note
+  let line1 = '', line2 = '';
+  // What it is — match common product types
+  if (/quark/i.test(lower))                   line1 = 'Soft fresh dairy cheese (Quark).';
+  else if (/joghurt|yogurt/i.test(lower))     line1 = 'Yogurt — dairy product.';
+  else if (/haferflocken/i.test(lower))       line1 = 'Rolled oats — breakfast cereal.';
+  else if (/müsli|musli/i.test(lower))        line1 = 'Muesli — oat cereal mix.';
+  else if (/brot|bread/i.test(lower))         line1 = 'Bread.';
+  else if (/schokolade|chocolate/i.test(lower)) line1 = 'Chocolate.';
+  else if (/milch\b/i.test(lower))            line1 = 'Milk.';
+  else if (/käse|cheese/i.test(lower))        line1 = 'Cheese.';
+  else if (/butter/i.test(lower))             line1 = 'Butter.';
+  else if (/saft|juice/i.test(lower))         line1 = 'Fruit juice.';
+  else if (/tee|tea/i.test(lower))            line1 = 'Tea.';
+  else if (/kaffee|coffee/i.test(lower))      line1 = 'Coffee.';
+  else if (/reis|rice/i.test(lower))          line1 = 'Rice.';
+  else if (/nudeln|pasta/i.test(lower))       line1 = 'Pasta / noodles.';
+  else if (/keks|biscuit|cookie/i.test(lower)) line1 = 'Biscuits / cookies.';
+  else if (/marmelade|konfitüre|jam/i.test(lower)) line1 = 'Fruit jam.';
+  else if (/honig|honey/i.test(lower))        line1 = 'Honey.';
+  else line1 = 'German supermarket food product.';
+
+  // Line 2 = practical note
   if (veg === 'non-veg') {
-    const which = OFS_NONVEG_KEYS.filter(k => new RegExp('\\b' + k + '\\b').test(lower)).slice(0, 3);
-    notes.push('🚫 Contains animal products: ' + which.map(k => OFS_DICT[k] || k).join(', ') + '. Skip — you are vegetarian.');
-  } else if (veg === 'vegetarian') {
-    notes.push('✓ Vegetarian — contains dairy/egg but no meat/fish/gelatin.');
-  } else if (veg === 'vegan') {
-    notes.push('✓ Vegan — fully plant-based.');
-  } else {
-    notes.push('Could not confirm veg status. Check label for: Fleisch, Gelatine, tierisches Lab.');
-  }
-  // Indian alt suggestions
-  if (/quark/i.test(lower)) notes.push('Quark = Indian hung curd (chakka) — perfect for shrikhand/raita.');
-  if (/haferflocken|hafer/i.test(lower)) notes.push('Hafer = oats (like Indian dalia).');
-  if (/buchweizen/i.test(lower)) notes.push('Buchweizen = kuttu (buckwheat), used in vrat dishes.');
-  if (/linsen/i.test(lower)) notes.push('Linsen = lentils (dal).');
-  if (/kichererbsen/i.test(lower)) notes.push('Kichererbsen = chickpeas/chana.');
+    const which = OFS_NONVEG_KEYS.filter(k => new RegExp('\\b' + k + '\\b').test(lower)).slice(0, 2);
+    line2 = '🚫 Skip — contains ' + which.map(k => OFS_DICT[k] || k).join(', ') + '.';
+  } else if (/quark/i.test(lower))            line2 = 'Like Indian hung curd — great for shrikhand or raita.';
+  else if (/haferflocken|hafer/i.test(lower)) line2 = 'Hafer = oats, like Indian dalia. Veg-safe.';
+  else if (/buchweizen/i.test(lower))         line2 = 'Buchweizen = kuttu (vrat-safe buckwheat).';
+  else if (/linsen/i.test(lower))             line2 = 'Linsen = lentils (dal). Veg-safe.';
+  else if (/kichererbsen/i.test(lower))       line2 = 'Kichererbsen = chana. Veg-safe.';
+  else if (veg === 'vegetarian')              line2 = '✓ Veg-safe — has dairy/egg but no meat or gelatin.';
+  else if (veg === 'vegan')                   line2 = '✓ Vegan — fully plant-based.';
+  else                                         line2 = 'Veg status unclear — check pack for: Gelatine, Fleisch, tierisches Lab.';
+
+  const description = line1 + '\n' + line2;
 
   // Best-effort product name = longest meaningful early line
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length >= 3 && l.length <= 60 && !/^\d/.test(l) && !/Zutat|Nährwert|Brennwert/i.test(l));
@@ -13809,12 +13827,8 @@ function _ofsLocalIdentify(text) {
   return {
     name: ofsTranslate(guessName),
     brand: '',
-    category: '',
-    ingredients_en: ingredients_en.length > 1200 ? ingredients_en.slice(0, 1200) + '…' : ingredients_en,
-    allergens,
     veg_status: veg,
-    nutrition_per_100g: nut,
-    indian_friendly_notes: notes.join(' '),
+    description,
     confidence: veg === 'unclear' ? 'low' : 'medium',
     _source: 'local-offline'
   };
@@ -13868,30 +13882,21 @@ function ofsRenderProductAI(d, imgDataUrl) {
   const el = document.getElementById('ofs-result');
   el.style.display = 'block';
   if (!d || d.error) {
-    el.innerHTML = `<div style="text-align:center"><div style="font-size:34px">⚠</div><div style="font-weight:800;font-size:14px;margin-top:6px">Could not identify</div><div style="font-size:12px;color:var(--text3);margin-top:6px">${d && d.error ? d.error : 'Try a clearer photo of the front of the pack'}</div></div>`;
+    el.innerHTML = `<div style="text-align:center"><div style="font-size:34px">⚠</div><div style="font-weight:800;font-size:14px;margin-top:6px">Could not identify</div><div style="font-size:12px;color:var(--text3);margin-top:6px">${d && d.error ? d.error : 'Try a clearer photo'}</div></div>`;
     return;
   }
   const veg = d.veg_status || 'unclear';
-  const vegBadge = veg === 'vegan' ? '<span style="background:#4CAF50;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🌱 VEGAN</span>'
-                : veg === 'vegetarian' ? '<span style="background:#8BC34A;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🥬 VEG</span>'
-                : veg === 'non-veg' ? '<span style="background:#CC0000;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🍖 NON-VEG</span>'
-                : '<span style="background:#888;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">❔ UNCLEAR</span>';
-  const conf = d.confidence ? `<span style="font-size:9px;font-weight:800;background:rgba(184,134,11,0.15);color:#B8860B;border:1px solid rgba(184,134,11,0.3);border-radius:5px;padding:2px 6px;text-transform:uppercase;margin-left:4px">${d.confidence} conf</span>` : '';
-  const all = (d.allergens || []).filter(Boolean);
-  const n = d.nutrition_per_100g || {};
-  const nutRow = (lbl, key, unit) => n[key] != null ? `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${lbl}</span><strong>${(+n[key]).toFixed(1)} ${unit}</strong></div>` : '';
+  const vegBadge = veg === 'vegan' ? '<span style="background:#4CAF50;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800">🌱 VEGAN</span>'
+                : veg === 'vegetarian' ? '<span style="background:#8BC34A;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800">🥬 VEG</span>'
+                : veg === 'non-veg' ? '<span style="background:#CC0000;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800">🍖 NON-VEG</span>'
+                : '<span style="background:#888;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800">❔ UNCLEAR</span>';
 
-  // Profile-based personal warnings
   const myWarnings = ofsCheckProfile(d);
 
-  // Nutrition flags
-  const nutFlags = [];
-  if (n.sugar_g != null && n.sugar_g >= 22.5) nutFlags.push('🍬 High sugar');
-  if (n.fat_g != null && n.fat_g >= 17.5) nutFlags.push('🥓 High fat');
-  if (n.salt_g != null && n.salt_g >= 1.5) nutFlags.push('🧂 High salt');
-  if (n.protein_g != null && n.protein_g >= 12) nutFlags.push('💪 Good protein');
+  // Description: prefer AI's `description`, fall back to local `indian_friendly_notes`
+  const desc = (d.description || d.indian_friendly_notes || '').trim();
 
-  // Add to recent + auto-cache
+  // Add to recent
   if (imgDataUrl && d.name && d._addedRecent !== true) {
     d._addedRecent = true;
     setTimeout(() => ofsAddRecent({ thumb: imgDataUrl, name: d.name, brand: d.brand||'', data: d }), 200);
@@ -13899,23 +13904,15 @@ function ofsRenderProductAI(d, imgDataUrl) {
 
   const id = 'aiprod_' + Date.now();
   el.innerHTML = `
-    ${imgDataUrl ? `<div style="text-align:center;margin-bottom:10px"><img src="${imgDataUrl}" style="max-height:160px;border-radius:12px;box-shadow:var(--sh)"></div>` : ''}
-    <div style="font-weight:800;font-size:17px;margin-bottom:2px">${d.name || 'Unknown'}</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${d.brand || ''} ${d.category ? '· '+d.category : ''} ${vegBadge} ${conf}</div>
-    ${myWarnings.length ? `<div style="background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;border-radius:12px;padding:10px 12px;margin-bottom:10px;animation:heartbeat 1.4s infinite"><div style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">🚨 Personal alert</div><div style="font-size:13px;font-weight:800;line-height:1.5">${myWarnings.join(' · ')}</div></div>` : ''}
-    ${all.length ? `<div style="background:rgba(204,0,0,0.08);border:1px solid rgba(204,0,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#CC0000;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">⚠ Allergens (label declared)</div><div style="font-size:12px;color:#CC0000;font-weight:700">${all.join(' · ')}</div></div>` : ''}
-    ${nutFlags.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${nutFlags.map(f => `<span style="background:rgba(184,134,11,0.12);color:#B8860B;border:1px solid rgba(184,134,11,0.3);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800">${f}</span>`).join('')}</div>` : ''}
-    ${d.indian_friendly_notes ? `<div style="background:rgba(255,206,0,0.1);border:1px solid rgba(255,206,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#B8860B;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">🇮🇳 Note for you</div><div style="font-size:12.5px;color:var(--text);line-height:1.6">${d.indian_friendly_notes}</div></div>` : ''}
-    ${d.ingredients_en ? `<details style="margin-bottom:10px" open><summary style="font-size:12px;font-weight:700;cursor:pointer;color:var(--text2)">📝 Ingredients (English)</summary><div style="margin-top:6px;font-size:11.5px;color:var(--text2);line-height:1.6">${d.ingredients_en}</div></details>` : ''}
-    ${(n.energy_kcal != null || n.fat_g != null) ? `<div style="background:var(--cream);border-radius:10px;padding:10px;margin-top:6px"><div style="font-size:10px;font-weight:800;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">Per 100g</div>
-      ${nutRow('Energy','energy_kcal','kcal')}
-      ${nutRow('Fat','fat_g','g')}
-      ${nutRow('Saturates','saturated_fat_g','g')}
-      ${nutRow('Carbohydrates','carbs_g','g')}
-      ${nutRow('Sugars','sugar_g','g')}
-      ${nutRow('Protein','protein_g','g')}
-      ${nutRow('Salt','salt_g','g')}</div>` : ''}
-    <button onclick='_ofsSaveAIFav(${JSON.stringify(JSON.stringify({ id, name: d.name||"Unknown", brand: d.brand||"", veg, allergens: all, ingredients_en: d.ingredients_en||"", notes: d.indian_friendly_notes||"" }))})' style="margin-top:10px;width:100%;padding:10px;border-radius:10px;border:1px solid #FFCE00;background:rgba(255,206,0,0.12);color:#B8860B;font-size:12px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">⭐ Save to favourites</button>`;
+    ${imgDataUrl ? `<div style="text-align:center;margin-bottom:12px"><img src="${imgDataUrl}" style="max-height:170px;border-radius:14px;box-shadow:var(--sh)"></div>` : ''}
+    <div style="text-align:center;margin-bottom:12px">
+      <div style="font-weight:900;font-size:20px;line-height:1.2;margin-bottom:4px">${d.name || 'Unknown'}</div>
+      ${d.brand ? `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">${d.brand}</div>` : ''}
+      <div>${vegBadge}</div>
+    </div>
+    ${myWarnings.length ? `<div style="background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:10px;animation:heartbeat 1.4s infinite;text-align:center"><div style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">🚨 Skip — not for you</div><div style="font-size:14px;font-weight:800;line-height:1.4">${myWarnings.join(' · ')}</div></div>` : ''}
+    ${desc ? `<div style="background:linear-gradient(135deg,#FFF8D6,#FFFBE6);border:1px solid #FFCE00;border-radius:14px;padding:14px 16px;margin-bottom:10px"><div style="font-size:13.5px;color:var(--text);line-height:1.7;white-space:pre-line">${desc}</div></div>` : ''}
+    <button onclick='_ofsSaveAIFav(${JSON.stringify(JSON.stringify({ id, name: d.name||"Unknown", brand: d.brand||"", veg, description: desc }))})' style="margin-top:6px;width:100%;padding:12px;border-radius:12px;border:1px solid #FFCE00;background:rgba(255,206,0,0.12);color:#B8860B;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">⭐ Save to favourites</button>`;
 }
 async function _ofsSaveAIFav(jsonStr) {
   try {
