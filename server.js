@@ -100,7 +100,7 @@ Weather & Wellbeing:
 const history = [];
 
 app.post('/chat', async (req, res) => {
-  const { message } = req.body;
+  const { message, context, memory, history: clientHistory } = req.body;
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message required' });
   }
@@ -158,21 +158,36 @@ Rules:
     }
   }
 
-  // ── Regular Rish chat ──
-  history.push({ role: 'user', content: message });
-  if (history.length > 20) history.splice(0, history.length - 20);
+  // ── Regular Rish chat with rich client context + persistent memory ──
+  const ctxBlock = buildContextBlock(context, memory);
+  const enrichedSystem = systemPrompt + (ctxBlock ? '\n\n' + ctxBlock : '');
+
+  // Prefer client-supplied history (persistent across sessions); fall back to in-memory
+  let useHistory;
+  if (Array.isArray(clientHistory) && clientHistory.length) {
+    useHistory = clientHistory.slice(-30); // up to 30 turns from client
+    useHistory.push({ role: 'user', content: message });
+  } else {
+    history.push({ role: 'user', content: message });
+    if (history.length > 30) history.splice(0, history.length - 30);
+    useHistory = history;
+  }
 
   try {
     const completion = await openai.chat.completions.create({
       model      : 'gpt-4o-mini',
-      messages   : [{ role: 'system', content: systemPrompt }, ...history],
-      max_tokens : 300,
-      temperature: 0.85
+      messages   : [{ role: 'system', content: enrichedSystem }, ...useHistory],
+      max_tokens : 600,
+      temperature: 0.9,
+      presence_penalty: 0.6,
+      frequency_penalty: 0.4
     });
 
     const reply = completion.choices[0].message.content.trim();
-    history.push({ role: 'assistant', content: reply });
-    if (history.length > 20) history.splice(0, history.length - 20);
+    if (!Array.isArray(clientHistory) || !clientHistory.length) {
+      history.push({ role: 'assistant', content: reply });
+      if (history.length > 30) history.splice(0, history.length - 30);
+    }
 
     res.json({ reply });
   } catch (err) {
@@ -181,9 +196,54 @@ Rules:
   }
 });
 
+// Build a system-prompt context block from client-supplied app state + memory
+function buildContextBlock(ctx, mem) {
+  const parts = [];
+  if (ctx && typeof ctx === 'object') {
+    const lines = [];
+    if (ctx.localTime)      lines.push(`- Right now (Marburg): ${ctx.localTime}`);
+    if (ctx.dayOfWeek)      lines.push(`- Day: ${ctx.dayOfWeek}`);
+    if (ctx.daysSinceArrival != null) lines.push(`- Days since she arrived in Marburg: ${ctx.daysSinceArrival}`);
+    if (ctx.currentScreen)  lines.push(`- Current screen in app: ${ctx.currentScreen}`);
+    if (Array.isArray(ctx.pendingTodos) && ctx.pendingTodos.length) {
+      lines.push('- Pending todos: ' + ctx.pendingTodos.slice(0, 8).map(t => `"${t.text}" (${t.priority||'med'}${t.tag?'/'+t.tag:''})`).join(', '));
+    }
+    if (Array.isArray(ctx.completedTodos) && ctx.completedTodos.length) {
+      lines.push('- Recently completed: ' + ctx.completedTodos.slice(-5).map(t => t.text).join(', '));
+    }
+    if (Array.isArray(ctx.recentScreens) && ctx.recentScreens.length) {
+      lines.push('- Recent screens she opened: ' + ctx.recentScreens.slice(-6).join(' → '));
+    }
+    if (ctx.appUsageMinutes != null) lines.push(`- Total minutes she's used the app: ${ctx.appUsageMinutes}`);
+    if (ctx.todayUsageMinutes != null) lines.push(`- Today's app usage: ${ctx.todayUsageMinutes} min`);
+    if (ctx.nextVisitDate) lines.push(`- Next visit countdown: ${ctx.nextVisitDate}`);
+    if (Array.isArray(ctx.favouriteProducts) && ctx.favouriteProducts.length) {
+      lines.push('- Saved grocery favourites: ' + ctx.favouriteProducts.slice(0,5).map(p => p.name).join(', '));
+    }
+    if (lines.length) parts.push('━━━ LIVE APP CONTEXT (right now) ━━━\n' + lines.join('\n'));
+  }
+  if (mem && typeof mem === 'object') {
+    const memLines = [];
+    if (Array.isArray(mem.facts) && mem.facts.length) {
+      memLines.push('Things you remember about Bebu (from past chats):');
+      mem.facts.slice(-25).forEach(f => memLines.push('- ' + f));
+    }
+    if (mem.summary) memLines.push('\nConversation summary so far: ' + mem.summary);
+    if (memLines.length) parts.push('━━━ LONG-TERM MEMORY ━━━\n' + memLines.join('\n'));
+  }
+  parts.push(`━━━ INTELLIGENCE RULES ━━━
+- Use the LIVE APP CONTEXT and LONG-TERM MEMORY to give specific, personal answers — NEVER generic templated replies.
+- If she asks about her todos, what's pending, what's done — answer from the actual list above, not generically.
+- If she asks "what time", "what day", "kiti divas zale" — use the live context above.
+- Vary your sentence openers — never start two replies the same way. Avoid repeating phrases from earlier in this conversation.
+- If you don't know something concrete (a date, a person), say so honestly instead of inventing.
+- When she shares a new fact about herself (allergy, friend's name, lab supervisor, food she likes/dislikes, plan she made) — mention you'll remember it. The app saves these.`);
+  return parts.join('\n\n');
+}
+
 // ── Streaming chat endpoint ──────────────────────────────
 app.post('/chat/stream', async (req, res) => {
-  const { message, image } = req.body;
+  const { message, image, context, memory, history: clientHistory } = req.body;
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message required' });
   }
@@ -219,19 +279,31 @@ Rules:
 - Award 🌟 points verbally for correct answers`;
     messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }];
   } else {
-    history.push({ role: 'user', content: image
+    // Enrich with live app context + persistent memory
+    const ctxBlock = buildContextBlock(context, memory);
+    const enrichedSystem = systemPrompt + (ctxBlock ? '\n\n' + ctxBlock : '');
+    const userTurn = image
       ? [{ type: 'text', text: message }, { type: 'image_url', image_url: { url: image } }]
-      : message });
-    if (history.length > 20) history.splice(0, history.length - 20);
-    messages = [{ role: 'system', content: systemPrompt }, ...history];
+      : message;
+    if (Array.isArray(clientHistory) && clientHistory.length) {
+      const h = clientHistory.slice(-30);
+      h.push({ role: 'user', content: userTurn });
+      messages = [{ role: 'system', content: enrichedSystem }, ...h];
+    } else {
+      history.push({ role: 'user', content: userTurn });
+      if (history.length > 30) history.splice(0, history.length - 30);
+      messages = [{ role: 'system', content: enrichedSystem }, ...history];
+    }
   }
 
   try {
     const stream = await openai.chat.completions.create({
       model: image ? 'gpt-4o' : 'gpt-4o-mini',
       messages,
-      max_tokens: isDeStart || isDeMode ? 380 : 500,
-      temperature: isDeMode ? 1.05 : 0.85,
+      max_tokens: isDeStart || isDeMode ? 380 : 700,
+      temperature: isDeMode ? 1.05 : 0.9,
+      presence_penalty: isDeMode ? 0 : 0.6,
+      frequency_penalty: isDeMode ? 0 : 0.4,
       stream: true
     });
 

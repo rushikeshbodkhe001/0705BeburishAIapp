@@ -4256,14 +4256,19 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         <span class="qa-sub">Grocery list</span>
       </div>
       <div class="qa-card" onclick="go('offline-scan')">
-        <span class="qa-icon">📷</span>
-        <span class="qa-label">Offline Scan</span>
-        <span class="qa-sub">Works without network</span>
+        <span class="qa-icon">🛍️</span>
+        <span class="qa-label">Grocery Assistant</span>
+        <span class="qa-sub">Scan + translate offline</span>
       </div>
       <div class="qa-card" onclick="go('todo')">
         <span class="qa-icon">✅</span>
         <span class="qa-label">To-Do</span>
         <span class="qa-sub">Tasks</span>
+      </div>
+      <div class="qa-card" onclick="go('usage')">
+        <span class="qa-icon">📊</span>
+        <span class="qa-label">App Stats</span>
+        <span class="qa-sub">Usage time</span>
       </div>
       <div class="qa-card" onclick="go('currency')">
         <span class="qa-icon">💶</span>
@@ -4739,12 +4744,37 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
     <div id="todo-list" style="margin:0 16px 14px;display:flex;flex-direction:column;gap:6px"></div>
   </div>
 
+  <!-- ══════════════ APP USAGE STATS ══════════════ -->
+  <div class="screen" id="s-usage">
+    <div style="background:linear-gradient(135deg,#141414,#1E1E1E,#B8860B);padding:18px 16px 22px;position:relative;overflow:hidden">
+      <button onclick="go('home')" style="position:absolute;top:14px;left:12px;background:rgba(255,255,255,0.15);border:none;border-radius:18px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;font-family:'Nunito',sans-serif;cursor:pointer">← Home</button>
+      <div style="margin-top:24px;font-family:'Playfair Display',serif;font-size:20px;color:#fff;font-weight:600">📊 App Usage</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px">Kitki vel app vapralis Bebu</div>
+    </div>
+
+    <div id="usage-summary" style="margin:14px 16px 0"></div>
+
+    <div style="margin:18px 16px 0">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">⏱ Last 7 days</div>
+      <div id="usage-week" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--sh)"></div>
+    </div>
+
+    <div style="margin:18px 16px 0">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">📱 Most-used screens</div>
+      <div id="usage-screens" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--sh)"></div>
+    </div>
+
+    <div style="margin:18px 16px 80px">
+      <button onclick="if(confirm('Reset all usage data?')){localStorage.removeItem('rish_usage');renderUsage();}" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer">Reset usage data</button>
+    </div>
+  </div>
+
   <!-- ══════════════ OFFLINE FOOD SCANNER ══════════════ -->
   <div class="screen" id="s-offline-scan">
     <div style="background:linear-gradient(135deg,#141414,#1E1E1E,#B8860B);padding:18px 16px 22px;position:relative;overflow:hidden">
       <button onclick="go('home')" style="position:absolute;top:14px;left:12px;background:rgba(255,255,255,0.15);border:none;border-radius:18px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;font-family:'Nunito',sans-serif;cursor:pointer">← Home</button>
-      <div style="margin-top:24px;font-family:'Playfair Display',serif;font-size:20px;color:#fff;font-weight:600">📷 Offline Scanner</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px">Aldi/Lidl mein no network needed</div>
+      <div style="margin-top:24px;font-family:'Playfair Display',serif;font-size:20px;color:#fff;font-weight:600">🛍️ Grocery Assistant</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px">Aldi/Lidl mein scan + translate, offline ready</div>
       <div id="ofs-status-pill" style="display:inline-block;margin-top:8px;background:rgba(76,175,80,0.2);border:1px solid #4CAF50;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:800;color:#4CAF50;letter-spacing:0.05em">● ONLINE</div>
     </div>
 
@@ -6724,13 +6754,68 @@ function _apiBase() {
   return '';
 }
 
+// ── Rish AI: live app context + persistent long-term memory ──
+function rishBuildContext() {
+  const now = new Date();
+  const mb = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  const arrival = new Date('2026-04-25T00:00:00');
+  const todos = JSON.parse(localStorage.getItem('rish_todos') || '[]');
+  const recent = JSON.parse(localStorage.getItem('rish_recent_screens') || '[]');
+  const usage = JSON.parse(localStorage.getItem('rish_usage') || '{}');
+  const todayKey = mb.toISOString().slice(0,10);
+  return {
+    localTime: mb.toLocaleString('en-GB', { hour:'2-digit', minute:'2-digit', weekday:'short', day:'numeric', month:'short' }),
+    dayOfWeek: mb.toLocaleDateString('en-GB', { weekday:'long' }),
+    daysSinceArrival: Math.max(0, Math.floor((mb - arrival) / 86400000)),
+    currentScreen: window._currentScreen || 'home',
+    recentScreens: recent.slice(-8),
+    pendingTodos:   todos.filter(t => !t.done).slice(0, 10),
+    completedTodos: todos.filter(t =>  t.done).slice(-5),
+    appUsageMinutes:   Math.round((usage.totalMs    || 0) / 60000),
+    todayUsageMinutes: Math.round((usage.byDay && usage.byDay[todayKey] ? usage.byDay[todayKey] : 0) / 60000),
+    nextVisitDate: localStorage.getItem('rish_next_visit') || null,
+  };
+}
+function rishLoadMemory() {
+  try { return JSON.parse(localStorage.getItem('rish_memory') || '{"facts":[],"summary":""}'); }
+  catch(e) { return { facts: [], summary: '' }; }
+}
+function rishSaveMemory(m) { try { localStorage.setItem('rish_memory', JSON.stringify(m)); } catch(e){} }
+function rishRememberFact(f) {
+  if (!f || typeof f !== 'string') return;
+  const m = rishLoadMemory();
+  if (!m.facts.includes(f)) { m.facts.push(f); if (m.facts.length > 60) m.facts.splice(0, m.facts.length - 60); rishSaveMemory(m); }
+}
+// auto-extract simple facts from her messages
+function rishAutoLearn(userMsg) {
+  if (!userMsg || typeof userMsg !== 'string') return;
+  const m = userMsg.toLowerCase();
+  const patterns = [
+    [/(?:my supervisor|supervisor|prof|professor)(?:'s name)?\s+is\s+([a-z\s.]{2,40})/i, n => `Her supervisor is ${n.trim()}`],
+    [/(?:my friend|friend)\s+([a-z]{2,20})/i, n => `Her friend ${n.trim()}`],
+    [/i (?:hate|don't like|cant eat|cannot eat)\s+([a-z\s]{2,30})/i, n => `She doesn't like / can't eat ${n.trim()}`],
+    [/i (?:love|really like|enjoy)\s+([a-z\s]{2,30})/i, n => `She loves ${n.trim()}`],
+    [/(?:i'm allergic to|allergic to)\s+([a-z\s]{2,30})/i, n => `She is allergic to ${n.trim()}`],
+    [/my (?:lab|institute|department) is\s+([a-z\s,.\-]{2,60})/i, n => `Her lab/dept: ${n.trim()}`],
+    [/my flat(?:mate)? (?:name )?is\s+([a-z\s]{2,30})/i, n => `Her flatmate is ${n.trim()}`],
+    [/i'?m? (?:going|planning) to\s+([a-z\s]{3,40})/i, n => `Plans: ${n.trim()}`],
+  ];
+  patterns.forEach(([rx, fn]) => { const m2 = userMsg.match(rx); if (m2) rishRememberFact(fn(m2[1])); });
+}
+
 async function rishCallAI() {
   const lastMsg = rishHistory.filter(m => m.role === 'user').slice(-1)[0];
   if (!lastMsg) throw new Error('NO_MSG');
+  rishAutoLearn(lastMsg.content);
   const res = await fetch(_apiBase() + '/chat', {
     method : 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body   : JSON.stringify({ message: lastMsg.content })
+    body   : JSON.stringify({
+      message: lastMsg.content,
+      context: rishBuildContext(),
+      memory:  rishLoadMemory(),
+      history: rishHistory.slice(-30, -1).filter(m => typeof m.content === 'string')
+    })
   });
   if (!res.ok) throw new Error('CHAT_HTTP_' + res.status);
   const data = await res.json();
@@ -8944,7 +9029,13 @@ async function _rishStream(text, imageB64, msgId, tw) {
 
   let full = '';
   try {
-    const body = { message: text };
+    rishAutoLearn(text);
+    const body = {
+      message: text,
+      context: rishBuildContext(),
+      memory:  rishLoadMemory(),
+      history: rishHistory.slice(-30, -1).filter(m => typeof m.content === 'string')
+    };
     if (imageB64) body.image = imageB64;
     const res = await fetch(_apiBase() + '/chat/stream', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -13288,10 +13379,10 @@ function closeDubaiPopup() {
 }
 
 function showFirstDayPopup() {
-  // 25 Apr 2026, 7am–12pm Marburg time (Europe/Berlin = CEST UTC+2 in April)
+  // 28 Apr 2026, 7am–12pm Marburg time (Europe/Berlin)
   const now = new Date();
   const mb = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
-  if (mb.toISOString().slice(0,10) !== '2026-04-25') return false;
+  if (mb.toISOString().slice(0,10) !== '2026-04-28') return false;
   const h = mb.getHours();
   if (h < 7 || h >= 12) return false;
   if (localStorage.getItem('rish_firstday_done')) return false;
@@ -13318,10 +13409,48 @@ function showFirstDayPopup() {
   return true;
 }
 
+function showTodoReminderPopup() {
+  // Daily 3pm–8pm Marburg time — show pending todos once per day
+  const now = new Date();
+  const mb = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  const h = mb.getHours();
+  if (h < 15 || h >= 20) return false;
+  const today = mb.toISOString().slice(0,10);
+  if (localStorage.getItem('rish_todoreminder_' + today)) return false;
+  const pend = (JSON.parse(localStorage.getItem('rish_todos') || '[]')).filter(t => !t.done);
+  if (!pend.length) return false;
+  localStorage.setItem('rish_todoreminder_' + today, '1');
+
+  const prClr = { high: '#FF4466', medium: '#FFCE00', low: '#888' };
+  const list = pend.slice(0, 6).map(t => `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.06);border-radius:10px;margin-bottom:6px;text-align:left">
+    <span style="width:8px;height:8px;border-radius:50%;background:${prClr[t.priority||'medium']};flex-shrink:0"></span>
+    <span style="flex:1;font-size:13px;color:#fff">${t.text}</span>
+    ${t.tag?`<span style="font-size:9px;font-weight:800;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);border-radius:5px;padding:2px 6px;text-transform:uppercase">${t.tag}</span>`:''}
+  </div>`).join('');
+
+  const ov = document.createElement('div');
+  ov.id = 'todo-reminder-popup';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.93);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;animation:greetIn 0.6s cubic-bezier(0.34,1.56,0.64,1);overflow-y:auto';
+  ov.innerHTML = `
+    <div style="text-align:center;max-width:340px;width:100%">
+      <div style="font-size:54px;margin-bottom:10px;animation:heartbeat 1.4s infinite">📝</div>
+      <div style="font-size:11px;font-weight:800;color:#FFCE00;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px">Evening Check-in</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:#fff;font-weight:700;line-height:1.3;margin-bottom:14px">Bebu, ek lakshat thev ❤️</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.7;margin-bottom:14px">Aaj tujhya pending tasks:</div>
+      <div style="margin-bottom:18px">${list}</div>
+      <button onclick="rishSpeak('Bebu! Aaj che kahi kaam baki ahet — ek check kar list la, ani aaj sathi finishing touches de. Tu kartiyech, mahit ahe mala. I love you Cutu!')" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid rgba(255,206,0,0.4);background:rgba(255,206,0,0.08);color:#FFCE00;font-size:14px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;margin-bottom:8px">🔊 Hear Rish</button>
+      <button onclick="document.getElementById('todo-reminder-popup').remove();go('todo')" style="width:100%;padding:14px;border-radius:100px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:14px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;margin-bottom:8px">✅ Open To-Do List</button>
+      <button onclick="document.getElementById('todo-reminder-popup').remove()" style="width:100%;padding:11px;border-radius:14px;border:none;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer">Later</button>
+    </div>`;
+  document.body.appendChild(ov);
+  return true;
+}
+
 function showOpenGreeting() {
   // Dubai layover popup takes priority 6am–7am Dubai time
   if (showDubaiPopup()) return;
   if (showFirstDayPopup()) return;
+  if (showTodoReminderPopup()) return;
 
   // Use sessionStorage so greeting shows on every fresh page load/open
   if (sessionStorage.getItem('rish_greeted')) return;
@@ -13357,6 +13486,141 @@ function showOpenGreeting() {
   const _vg = _GREET_VOICE[Math.floor(Math.random() * _GREET_VOICE.length)];
   window._greetVoiceMsg = _vg + '. ' + timeMsg;
 }
+
+// ═══════════════════════════════════════════════════════════
+// 📊 APP USAGE TRACKING
+// ═══════════════════════════════════════════════════════════
+const USAGE_KEY = 'rish_usage';
+function _usageLoad() {
+  try { return JSON.parse(localStorage.getItem(USAGE_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+function _usageSave(u) { try { localStorage.setItem(USAGE_KEY, JSON.stringify(u)); } catch(e){} }
+function _todayKey() {
+  const mb = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  return mb.toISOString().slice(0,10);
+}
+let _usageStart = Date.now();
+let _usageActive = !document.hidden;
+let _usageCurrentScreen = 'home';
+
+function _usageFlush() {
+  if (!_usageActive) return;
+  const dt = Date.now() - _usageStart;
+  if (dt < 250) { _usageStart = Date.now(); return; }
+  const u = _usageLoad();
+  u.totalMs = (u.totalMs || 0) + dt;
+  u.byDay = u.byDay || {};
+  u.byDay[_todayKey()] = (u.byDay[_todayKey()] || 0) + dt;
+  u.byScreen = u.byScreen || {};
+  u.byScreen[_usageCurrentScreen] = (u.byScreen[_usageCurrentScreen] || 0) + dt;
+  u.firstUse = u.firstUse || Date.now();
+  u.lastUse = Date.now();
+  _usageSave(u);
+  _usageStart = Date.now();
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { _usageFlush(); _usageActive = false; }
+  else { _usageActive = true; _usageStart = Date.now(); }
+});
+window.addEventListener('beforeunload', _usageFlush);
+setInterval(_usageFlush, 30000);
+
+function fmtDur(ms) {
+  if (!ms) return '0m';
+  const m = Math.round(ms / 60000);
+  if (m < 60) return m + 'm';
+  const h = Math.floor(m / 60); const r = m % 60;
+  return r ? `${h}h ${r}m` : `${h}h`;
+}
+
+function renderUsage() {
+  _usageFlush();
+  const u = _usageLoad();
+  const sum = document.getElementById('usage-summary');
+  if (!sum) return;
+  const today = u.byDay && u.byDay[_todayKey()] ? u.byDay[_todayKey()] : 0;
+  const total = u.totalMs || 0;
+  const days = u.byDay ? Object.keys(u.byDay).length : 0;
+  const avg = days ? total / days : 0;
+  sum.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:linear-gradient(135deg,#141414,#2A2A2A);border-radius:14px;padding:14px;color:#fff">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;font-weight:700">Today</div>
+        <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:600;color:#FFCE00;margin-top:2px">${fmtDur(today)}</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#141414,#2A2A2A);border-radius:14px;padding:14px;color:#fff">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;font-weight:700">All-time</div>
+        <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:600;color:#FFCE00;margin-top:2px">${fmtDur(total)}</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--sh)">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:700">Avg/day</div>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-top:2px">${fmtDur(avg)}</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--sh)">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:700">Active days</div>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-top:2px">${days}</div>
+      </div>
+    </div>`;
+
+  // Last 7 days bars
+  const wk = document.getElementById('usage-week');
+  if (wk) {
+    const days7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const k = d.toISOString().slice(0,10);
+      days7.push({ k, label: d.toLocaleDateString('en-GB',{weekday:'short'}), ms: (u.byDay && u.byDay[k]) || 0 });
+    }
+    const max = Math.max(1, ...days7.map(d => d.ms));
+    wk.innerHTML = days7.map(d => `
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+        <span style="width:36px;font-size:11px;color:var(--text3);font-weight:700">${d.label}</span>
+        <div style="flex:1;background:rgba(0,0,0,0.06);border-radius:6px;overflow:hidden;height:14px"><div style="background:linear-gradient(90deg,#CC0000,#FFCE00);height:100%;width:${(d.ms/max)*100}%;transition:width 0.4s"></div></div>
+        <span style="width:60px;font-size:11px;text-align:right;color:var(--text2);font-weight:700">${fmtDur(d.ms)}</span>
+      </div>`).join('');
+  }
+
+  // Top screens
+  const sc = document.getElementById('usage-screens');
+  if (sc) {
+    const entries = Object.entries(u.byScreen || {}).sort((a,b) => b[1]-a[1]).slice(0,8);
+    if (!entries.length) { sc.innerHTML = '<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">No data yet</div>'; }
+    else {
+      const max = entries[0][1];
+      const ICONS = { home:'🏠', 'rish-ai':'❤️', todo:'✅', shopping:'🛒', 'next-visit':'✈️', 'offline-scan':'🛍️', missing:'💌', sim:'📱', currency:'💶', usage:'📊', 'first-week':'🗓️', 'pre-fly':'🧳', 'practice-german':'🇩🇪', translate:'🔤' };
+      sc.innerHTML = entries.map(([s, ms]) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+          <span style="font-size:18px;width:24px;text-align:center">${ICONS[s]||'📄'}</span>
+          <span style="flex:1;font-size:12px;font-weight:700;color:var(--text);text-transform:capitalize">${s.replace(/-/g,' ')}</span>
+          <div style="width:80px;background:rgba(0,0,0,0.06);border-radius:5px;height:8px;overflow:hidden"><div style="background:#B8860B;height:100%;width:${(ms/max)*100}%"></div></div>
+          <span style="width:54px;text-align:right;font-size:11px;color:var(--text2);font-weight:700">${fmtDur(ms)}</span>
+        </div>`).join('');
+    }
+  }
+}
+
+// Hook go() to track screen changes
+(function _wrapGoForUsage(){
+  const origGo = window.go;
+  if (typeof origGo !== 'function') return;
+  window.go = function(name, _internal) {
+    _usageFlush();
+    _usageCurrentScreen = name || 'home';
+    window._currentScreen = _usageCurrentScreen;
+    // recent screens trail
+    try {
+      const r = JSON.parse(localStorage.getItem('rish_recent_screens') || '[]');
+      r.push(_usageCurrentScreen);
+      if (r.length > 30) r.splice(0, r.length - 30);
+      localStorage.setItem('rish_recent_screens', JSON.stringify(r));
+    } catch(e) {}
+    const out = origGo.apply(this, arguments);
+    if (name === 'usage') setTimeout(renderUsage, 30);
+    return out;
+  };
+})();
 
 // ═══════════════════════════════════════════════════════════
 // 📷 OFFLINE FOOD SCANNER
