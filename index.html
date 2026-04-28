@@ -4857,9 +4857,39 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
     <div style="background:linear-gradient(135deg,#141414,#1E1E1E,#B8860B);padding:18px 16px 22px;position:relative;overflow:hidden">
       <button onclick="go('home')" style="position:absolute;top:14px;left:12px;background:rgba(255,255,255,0.15);border:none;border-radius:18px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;font-family:'Nunito',sans-serif;cursor:pointer">← Home</button>
       <div style="margin-top:24px;font-family:'Playfair Display',serif;font-size:20px;color:#fff;font-weight:600">🛍️ Grocery Assistant</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px">Aldi/Lidl mein scan + translate, offline ready</div>
-      <div id="ofs-status-pill" style="display:inline-block;margin-top:8px;background:rgba(76,175,80,0.2);border:1px solid #4CAF50;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:800;color:#4CAF50;letter-spacing:0.05em">● ONLINE</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px">Aldi/Lidl mein scan, identify, translate</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">
+        <div id="ofs-status-pill" style="display:inline-block;background:rgba(76,175,80,0.2);border:1px solid #4CAF50;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:800;color:#4CAF50;letter-spacing:0.05em">● ONLINE</div>
+        <button onclick="ofsOpenSettings()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:3px 10px;font-size:10px;font-weight:800;color:#fff;cursor:pointer;font-family:'Nunito',sans-serif">⚙ My Allergies</button>
+        <span id="ofs-myalg-summary" style="font-size:10px;color:rgba(255,255,255,0.55)"></span>
+      </div>
     </div>
+
+    <!-- Allergy settings modal -->
+    <div id="ofs-settings" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(20px);padding:20px;overflow-y:auto" onclick="if(event.target===this)ofsCloseSettings()">
+      <div style="max-width:380px;margin:60px auto 0;background:var(--card);border-radius:18px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-weight:800;font-size:15px">⚙ My allergies & diet</div>
+          <button onclick="ofsCloseSettings()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer">✕</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">When you scan a product, anything you mark here will trigger a 🚨 red warning.</div>
+        <div id="ofs-alg-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px"></div>
+        <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Diet</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+          <label class="ofs-diet"><input type="radio" name="ofs-diet" value="any" id="ofs-d-any" style="display:none"><span>Eat anything</span></label>
+          <label class="ofs-diet"><input type="radio" name="ofs-diet" value="vegetarian" id="ofs-d-veg" style="display:none"><span>🥬 Vegetarian</span></label>
+          <label class="ofs-diet"><input type="radio" name="ofs-diet" value="vegan" id="ofs-d-vegan" style="display:none"><span>🌱 Vegan</span></label>
+          <label class="ofs-diet"><input type="radio" name="ofs-diet" value="halal" id="ofs-d-halal" style="display:none"><span>☪ Halal</span></label>
+        </div>
+        <button onclick="ofsSaveSettings()" style="width:100%;padding:12px;border-radius:12px;border:none;background:#CC0000;color:#fff;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">Save</button>
+      </div>
+    </div>
+    <style>
+      .ofs-alg-chip{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;user-select:none;background:var(--cream)}
+      .ofs-alg-chip.on{background:rgba(204,0,0,0.08);border-color:#CC0000;color:#CC0000}
+      .ofs-diet span{display:inline-block;padding:7px 12px;border:1.5px solid var(--border);border-radius:100px;font-size:11px;font-weight:800;cursor:pointer;background:var(--cream)}
+      .ofs-diet input:checked + span{background:#CC0000;color:#fff;border-color:#CC0000}
+    </style>
 
 
     <!-- Tabs -->
@@ -4874,9 +4904,9 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         <input id="ofs-prod-file" type="file" accept="image/*" capture="environment" onchange="ofsScanProduct(this.files[0])" style="display:none">
         <div style="font-size:46px;margin-bottom:8px">📸</div>
         <div style="font-size:15px;font-weight:800">Take photo of the product</div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:6px">Front of pack — Rish AI will identify it for you</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:6px">Works offline · AI sharpens results when online</div>
       </label>
-      <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:center">Works on Aldi/Lidl/Rewe products · Translates German → English</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:center">Aldi/Lidl/Rewe ready · OCR + DE→EN translation runs on-device</div>
       <div id="ofs-prod-progress" style="display:none;margin-top:10px;font-size:12px;color:var(--text2);text-align:center"></div>
     </div>
 
@@ -4893,6 +4923,12 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
 
     <!-- Result -->
     <div id="ofs-result" style="display:none;margin:14px 16px 0;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--sh)"></div>
+
+    <!-- Recent scans -->
+    <div style="margin:14px 16px 0">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">🕒 Recent scans</div>
+      <div id="ofs-recent" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px"></div>
+    </div>
 
     <!-- Favourites -->
     <div style="margin:14px 16px 80px">
@@ -13259,17 +13295,19 @@ function showFirstDayPopup() {
   return true;
 }
 
-function showTodoReminderPopup() {
-  // Daily 3pm–8pm Marburg time — show pending todos once per day
+function showTodoReminderPopup(force) {
+  // Daily 1pm–9pm Marburg time — show pending todos once per day (force=true ignores throttle)
   const now = new Date();
   const mb = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
   const h = mb.getHours();
-  if (h < 15 || h >= 20) return false;
-  const today = mb.toISOString().slice(0,10);
-  if (localStorage.getItem('rish_todoreminder_' + today)) return false;
+  if (!force) {
+    if (h < 13 || h >= 21) return false;
+    const today = mb.toISOString().slice(0,10);
+    if (localStorage.getItem('rish_todoreminder_' + today)) return false;
+    localStorage.setItem('rish_todoreminder_' + today, '1');
+  }
   const pend = (JSON.parse(localStorage.getItem('rish_todos') || '[]')).filter(t => !t.done);
-  if (!pend.length) return false;
-  localStorage.setItem('rish_todoreminder_' + today, '1');
+  if (!pend.length && !force) return false;
 
   const prClr = { high: '#FF4466', medium: '#FFCE00', low: '#888' };
   const list = pend.slice(0, 6).map(t => `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.06);border-radius:10px;margin-bottom:6px;text-align:left">
@@ -13531,6 +13569,107 @@ function _ofsUpdateNetworkPill() {
 window.addEventListener('online', _ofsUpdateNetworkPill);
 window.addEventListener('offline', _ofsUpdateNetworkPill);
 
+// ── User profile (allergies + diet) ──
+const OFS_PROFILE_KEY = 'rish_ofs_profile';
+const OFS_ALLERGEN_OPTS = [
+  { id:'milk',    label:'🥛 Milk / Dairy',    keys:['milk','milch','laktose','dairy','butter','cheese','käse','sahne','rahm','quark','joghurt'] },
+  { id:'gluten',  label:'🌾 Gluten / Wheat',  keys:['gluten','weizen','wheat','dinkel','spelt','rye','roggen','barley','gerste','oats','hafer'] },
+  { id:'egg',     label:'🥚 Egg',             keys:['egg','ei','eier','eiweiß','eigelb'] },
+  { id:'peanut',  label:'🥜 Peanut',          keys:['peanut','erdnuss','erdnüsse'] },
+  { id:'treenut', label:'🌰 Tree nuts',       keys:['tree nut','almond','mandel','hazelnut','haselnuss','walnut','walnuss','cashew','pistachio','pistazie'] },
+  { id:'soy',     label:'🫘 Soy',             keys:['soy','soja','sojabohnen','sojalecithin'] },
+  { id:'fish',    label:'🐟 Fish',            keys:['fish','fisch','salmon','lachs','tuna','thunfisch','cod','kabeljau'] },
+  { id:'shell',   label:'🦐 Shellfish',       keys:['shellfish','crustacean','krebstier','garnele','prawn','shrimp','crab'] },
+  { id:'sesame',  label:'🌱 Sesame',          keys:['sesame','sesam'] },
+  { id:'mustard', label:'🟡 Mustard',         keys:['mustard','senf'] },
+  { id:'sulfite', label:'🧪 Sulfites',        keys:['sulfite','sulphite','schwefeldioxid'] },
+  { id:'celery',  label:'🥬 Celery',          keys:['celery','sellerie'] },
+];
+
+function ofsLoadProfile() {
+  try { return JSON.parse(localStorage.getItem(OFS_PROFILE_KEY) || '{"allergies":[],"diet":"vegetarian"}'); }
+  catch(e) { return { allergies: [], diet: 'vegetarian' }; }
+}
+function ofsSaveProfile(p) { try { localStorage.setItem(OFS_PROFILE_KEY, JSON.stringify(p)); } catch(e){} ofsRenderProfileSummary(); }
+function ofsRenderProfileSummary() {
+  const el = document.getElementById('ofs-myalg-summary');
+  if (!el) return;
+  const p = ofsLoadProfile();
+  const parts = [];
+  if (p.diet && p.diet !== 'any') parts.push({vegetarian:'🥬 Veg',vegan:'🌱 Vegan',halal:'☪ Halal'}[p.diet] || p.diet);
+  if (p.allergies && p.allergies.length) parts.push('⚠️ ' + p.allergies.length + ' allergies');
+  el.textContent = parts.length ? '· ' + parts.join(' · ') : '· Tap to set';
+}
+
+function ofsOpenSettings() {
+  const p = ofsLoadProfile();
+  const grid = document.getElementById('ofs-alg-grid');
+  grid.innerHTML = OFS_ALLERGEN_OPTS.map(a => `<div class="ofs-alg-chip${p.allergies.includes(a.id)?' on':''}" onclick="this.classList.toggle('on');this.dataset.id='${a.id}'" data-id="${a.id}">${a.label}</div>`).join('');
+  ['any','veg','vegan','halal'].forEach(d => {
+    const map = { any:'any', veg:'vegetarian', vegan:'vegan', halal:'halal' };
+    const r = document.getElementById('ofs-d-' + d);
+    if (r) r.checked = (map[d] === (p.diet || 'vegetarian'));
+  });
+  document.getElementById('ofs-settings').style.display = 'block';
+}
+function ofsCloseSettings() { document.getElementById('ofs-settings').style.display = 'none'; }
+function ofsSaveSettings() {
+  const allergies = Array.from(document.querySelectorAll('#ofs-alg-grid .ofs-alg-chip.on')).map(c => c.dataset.id);
+  const dietRadio = document.querySelector('input[name="ofs-diet"]:checked');
+  const diet = dietRadio ? dietRadio.value : 'vegetarian';
+  ofsSaveProfile({ allergies, diet });
+  ofsCloseSettings();
+}
+
+// Check a product against my profile — returns array of warnings
+function ofsCheckProfile(product) {
+  const p = ofsLoadProfile();
+  const warnings = [];
+  const text = ((product.ingredients_en || '') + ' ' + (product.allergens || []).join(' ') + ' ' + (product.name || '')).toLowerCase();
+  for (const algId of p.allergies || []) {
+    const opt = OFS_ALLERGEN_OPTS.find(o => o.id === algId);
+    if (!opt) continue;
+    if (opt.keys.some(k => text.includes(k))) warnings.push(opt.label);
+  }
+  if (p.diet === 'vegetarian' && product.veg_status === 'non-veg')  warnings.push('🚫 Not vegetarian (you set Veg)');
+  if (p.diet === 'vegan'      && product.veg_status !== 'vegan')    warnings.push('🚫 Not vegan (you set Vegan)');
+  if (p.diet === 'halal') {
+    if (/pork|schwein|gelatine|alcohol|wine|wein/i.test(text)) warnings.push('🚫 Not halal (pork/alcohol/gelatin)');
+  }
+  return warnings;
+}
+
+// ── Recent scans (last 12) ──
+const OFS_RECENT_KEY = 'rish_ofs_recent';
+function ofsAddRecent(item) {
+  try {
+    const list = JSON.parse(localStorage.getItem(OFS_RECENT_KEY) || '[]');
+    list.unshift(item);
+    list.splice(12);
+    localStorage.setItem(OFS_RECENT_KEY, JSON.stringify(list));
+    ofsRenderRecent();
+  } catch(e){}
+}
+function ofsRenderRecent() {
+  const el = document.getElementById('ofs-recent');
+  if (!el) return;
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(OFS_RECENT_KEY) || '[]'); } catch(e){}
+  if (!list.length) { el.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:6px">No scans yet</div>'; return; }
+  el.innerHTML = list.map((r, i) => `<div onclick='_ofsRescanRecent(${i})' style="flex-shrink:0;width:100px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px;cursor:pointer;text-align:center;box-shadow:var(--sh)">
+    ${r.thumb ? `<img src="${r.thumb}" style="width:88px;height:64px;object-fit:cover;border-radius:6px"/>` : `<div style="width:88px;height:64px;background:var(--cream);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:24px">🛍️</div>`}
+    <div style="font-size:10px;font-weight:800;color:var(--text);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name||'?'}</div>
+    <div style="font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.brand||''}</div>
+  </div>`).join('');
+}
+function _ofsRescanRecent(i) {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(OFS_RECENT_KEY) || '[]'); } catch(e){}
+  const r = list[i];
+  if (!r) return;
+  ofsRenderProductAI(r.data, r.thumb);
+}
+
 function ofsSwitchTab(t) {
   document.getElementById('ofs-pane-prod').style.display = t === 'prod' ? '' : 'none';
   document.getElementById('ofs-pane-ocr').style.display  = t === 'ocr'  ? '' : 'none';
@@ -13541,26 +13680,132 @@ function ofsSwitchTab(t) {
   active.style.background = '#CC0000'; active.style.color = '#fff'; active.style.borderColor = '#CC0000';
 }
 
-// ── Snap product → resize → AI identify ──
+// ── Snap product → resize → local OCR FIRST (offline-first) → optionally AI enhance ──
 async function ofsScanProduct(file) {
   if (!file) return;
   const prog = document.getElementById('ofs-prod-progress');
   prog.style.display = 'block';
   prog.textContent = '📸 Compressing photo…';
+  let dataUrl;
   try {
-    const dataUrl = await _ofsResizeImage(file, 1024, 0.78);
-    prog.textContent = '🧠 Rish is identifying the product…';
+    // Aggressive resize so payload always fits — try 768/0.62, fall back smaller if huge
+    dataUrl = await _ofsResizeImage(file, 768, 0.62);
+    if (dataUrl.length > 2_500_000) dataUrl = await _ofsResizeImage(file, 640, 0.55);
+    if (dataUrl.length > 2_500_000) dataUrl = await _ofsResizeImage(file, 512, 0.5);
+  }
+  catch(e) { prog.textContent = '⚠ Could not read photo'; return; }
+
+  // 1. Cache check by image hash
+  const hash = await _ofsImgHash(dataUrl);
+  const cached = await ofsCacheGet(hash);
+  if (cached) {
+    prog.style.display = 'none';
+    ofsRenderProductAI(cached.data, dataUrl);
+    return;
+  }
+
+  // 2. ALWAYS run local OCR first — works fully offline
+  prog.textContent = '🔍 Reading label (offline)…';
+  let local = null;
+  try {
+    await _ofsLoadTess();
+    const { data: { text } } = await Tesseract.recognize(dataUrl, 'deu', {
+      logger: m => { if (m.status === 'recognizing text' && m.progress != null) prog.textContent = `Reading label · ${Math.round(m.progress*100)}%`; }
+    });
+    local = _ofsLocalIdentify(text);
+  } catch(e) { /* OCR may fail if model not yet downloaded offline */ }
+
+  // 3. Render local result immediately (offline-friendly)
+  if (local) {
+    ofsRenderProductAI(local, dataUrl);
+    await ofsCachePut(hash, local);
+    prog.textContent = navigator.onLine ? '🧠 Enhancing with AI…' : '✓ Offline result · connect to wifi for sharper ID';
+    if (!navigator.onLine) { setTimeout(() => prog.style.display='none', 2200); return; }
+  } else if (!navigator.onLine) {
+    prog.textContent = '⚠ Offline + label not readable. Try the 📝 Label Only tab.';
+    return;
+  } else {
+    prog.textContent = '🧠 Rish is identifying…';
+  }
+
+  // 4. If online, enhance with AI (refines name/allergens/notes)
+  try {
     const res = await fetch(_apiBase() + '/scan-product', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: dataUrl })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    const ai = await res.json();
+    if (ai && !ai.error) {
+      const merged = _ofsMergeResults(local, ai);
+      ofsRenderProductAI(merged, dataUrl);
+      await ofsCachePut(hash, merged);
+    }
     prog.style.display = 'none';
-    ofsRenderProductAI(data, dataUrl);
   } catch(e) {
-    prog.textContent = '⚠ ' + (navigator.onLine ? 'Could not identify: ' + e.message : 'Offline — connect to wifi to identify products');
+    if (!local) prog.textContent = '⚠ Could not identify offline: ' + e.message;
+    else prog.style.display = 'none';
+  }
+}
+
+// Local-only product identifier from OCR text using bundled dictionary
+function _ofsLocalIdentify(text) {
+  if (!text || !text.trim()) return null;
+  const trimmed = text.replace(/\s+/g,' ').trim();
+  const en = ofsTranslate(trimmed);
+  const allergens = ofsDetectAllergens(trimmed);
+  const veg = ofsIsVeg(trimmed);
+
+  // Try to find product name = first non-trivial line of OCR
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length >= 3 && l.length <= 60 && !/^\d+/.test(l));
+  const guessName = lines[0] ? ofsTranslate(lines[0]) : 'Unknown product';
+
+  // Nutrition extraction (per 100g table)
+  const nut = {};
+  const grab = (label, key, unit) => {
+    const re = new RegExp(label + '\\s*[:.]?\\s*([\\d.,]+)\\s*' + (unit||'(?:g|kcal|kJ)?'), 'i');
+    const m = text.match(re);
+    if (m) nut[key] = parseFloat(m[1].replace(',', '.'));
+  };
+  grab('Brennwert|Energie|Energy', 'energy_kcal', 'kcal');
+  grab('Fett|Fat', 'fat_g', 'g');
+  grab('gesättigte', 'saturated_fat_g', 'g');
+  grab('Kohlenhydrate|Carbohydrates', 'carbs_g', 'g');
+  grab('Zucker|Sugars?', 'sugar_g', 'g');
+  grab('Eiweiß|Protein', 'protein_g', 'g');
+  grab('Salz|Salt', 'salt_g', 'g');
+
+  return {
+    name: guessName,
+    brand: '',
+    category: '',
+    ingredients_en: en.length > 800 ? en.slice(0, 800) + '…' : en,
+    allergens,
+    veg_status: veg,
+    nutrition_per_100g: nut,
+    indian_friendly_notes: '',
+    confidence: 'low',
+    _source: 'local'
+  };
+}
+
+// Merge local OCR result with AI result — AI wins on identification, keep nutrition fallback
+function _ofsMergeResults(local, ai) {
+  const out = Object.assign({}, local || {}, ai || {});
+  out._source = 'ai+local';
+  if ((!ai.allergens || !ai.allergens.length) && local && local.allergens) out.allergens = local.allergens;
+  if (!ai.nutrition_per_100g && local && local.nutrition_per_100g) out.nutrition_per_100g = local.nutrition_per_100g;
+  return out;
+}
+
+// Cheap content hash for caching same photos
+async function _ofsImgHash(dataUrl) {
+  try {
+    const enc = new TextEncoder().encode(dataUrl.slice(0, 4000));
+    const buf = await crypto.subtle.digest('SHA-1', enc);
+    return 'img:' + Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0,16);
+  } catch(e) {
+    return 'img:' + dataUrl.length + ':' + dataUrl.slice(50, 80);
   }
 }
 
@@ -13604,12 +13849,31 @@ function ofsRenderProductAI(d, imgDataUrl) {
   const all = (d.allergens || []).filter(Boolean);
   const n = d.nutrition_per_100g || {};
   const nutRow = (lbl, key, unit) => n[key] != null ? `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${lbl}</span><strong>${(+n[key]).toFixed(1)} ${unit}</strong></div>` : '';
+
+  // Profile-based personal warnings
+  const myWarnings = ofsCheckProfile(d);
+
+  // Nutrition flags
+  const nutFlags = [];
+  if (n.sugar_g != null && n.sugar_g >= 22.5) nutFlags.push('🍬 High sugar');
+  if (n.fat_g != null && n.fat_g >= 17.5) nutFlags.push('🥓 High fat');
+  if (n.salt_g != null && n.salt_g >= 1.5) nutFlags.push('🧂 High salt');
+  if (n.protein_g != null && n.protein_g >= 12) nutFlags.push('💪 Good protein');
+
+  // Add to recent + auto-cache
+  if (imgDataUrl && d.name && d._addedRecent !== true) {
+    d._addedRecent = true;
+    setTimeout(() => ofsAddRecent({ thumb: imgDataUrl, name: d.name, brand: d.brand||'', data: d }), 200);
+  }
+
   const id = 'aiprod_' + Date.now();
   el.innerHTML = `
     ${imgDataUrl ? `<div style="text-align:center;margin-bottom:10px"><img src="${imgDataUrl}" style="max-height:160px;border-radius:12px;box-shadow:var(--sh)"></div>` : ''}
     <div style="font-weight:800;font-size:17px;margin-bottom:2px">${d.name || 'Unknown'}</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${d.brand || ''} ${d.category ? '· '+d.category : ''} ${vegBadge} ${conf}</div>
-    ${all.length ? `<div style="background:rgba(204,0,0,0.08);border:1px solid rgba(204,0,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#CC0000;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">⚠ Allergens</div><div style="font-size:12px;color:#CC0000;font-weight:700">${all.join(' · ')}</div></div>` : ''}
+    ${myWarnings.length ? `<div style="background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;border-radius:12px;padding:10px 12px;margin-bottom:10px;animation:heartbeat 1.4s infinite"><div style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">🚨 Personal alert</div><div style="font-size:13px;font-weight:800;line-height:1.5">${myWarnings.join(' · ')}</div></div>` : ''}
+    ${all.length ? `<div style="background:rgba(204,0,0,0.08);border:1px solid rgba(204,0,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#CC0000;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">⚠ Allergens (label declared)</div><div style="font-size:12px;color:#CC0000;font-weight:700">${all.join(' · ')}</div></div>` : ''}
+    ${nutFlags.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${nutFlags.map(f => `<span style="background:rgba(184,134,11,0.12);color:#B8860B;border:1px solid rgba(184,134,11,0.3);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800">${f}</span>`).join('')}</div>` : ''}
     ${d.indian_friendly_notes ? `<div style="background:rgba(255,206,0,0.1);border:1px solid rgba(255,206,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#B8860B;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">🇮🇳 Note for you</div><div style="font-size:12.5px;color:var(--text);line-height:1.6">${d.indian_friendly_notes}</div></div>` : ''}
     ${d.ingredients_en ? `<details style="margin-bottom:10px" open><summary style="font-size:12px;font-weight:700;cursor:pointer;color:var(--text2)">📝 Ingredients (English)</summary><div style="margin-top:6px;font-size:11.5px;color:var(--text2);line-height:1.6">${d.ingredients_en}</div></details>` : ''}
     ${(n.energy_kcal != null || n.fat_g != null) ? `<div style="background:var(--cream);border-radius:10px;padding:10px;margin-top:6px"><div style="font-size:10px;font-weight:800;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">Per 100g</div>
@@ -13906,13 +14170,16 @@ if (typeof _origGo_OFS === 'function') {
     if (name === 'offline-scan') {
       _ofsUpdateNetworkPill();
       ofsRenderFavs();
+      ofsRenderRecent();
+      ofsRenderProfileSummary();
       ofsFirstLaunchPreload();
-    } else {
-      ofsStopBarcode();
     }
     return r;
   };
 }
+
+// While the app is open, re-check for the todo reminder window every 5 min
+setInterval(() => { try { if (typeof showTodoReminderPopup === 'function') showTodoReminderPopup(false); } catch(e){} }, 5 * 60 * 1000);
 
 // Boot sequence
 window.addEventListener('load', () => {

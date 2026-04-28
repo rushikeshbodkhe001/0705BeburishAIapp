@@ -7,7 +7,8 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({ origin: '*' }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '30mb' }));
+app.use(express.urlencoded({ limit: '30mb', extended: true }));
 
 // ── Serve frontend (index.html) from same server ──────────────
 app.use(express.static(path.join(__dirname)));
@@ -337,24 +338,31 @@ app.post('/scan-product', async (req, res) => {
       model: 'gpt-4o',
       messages: [{
         role: 'system',
-        content: `You are a German supermarket product identifier for an Indian student in Marburg.
+        content: `You are a world-class German supermarket product identifier for Ankita — an Indian PhD student in Marburg, Germany. She shops at Aldi, Lidl, Rewe, Edeka, Penny.
+
 Look at the product photo and return ONLY valid JSON (no markdown, no prose) with this exact schema:
 {
-  "name": "<product name in English>",
-  "brand": "<brand if visible>",
-  "category": "<food category, e.g. dairy/snack/bread/drink>",
-  "ingredients_en": "<ingredients translated to English, comma-separated>",
-  "allergens": ["<allergen1>", "<allergen2>"],
+  "name": "<concise English product name>",
+  "brand": "<brand if visible, '' if not>",
+  "category": "<food category: dairy/snack/bread/drink/spread/condiment/cereal/sweet/frozen/produce/meat/fish/oil/grain/legume>",
+  "ingredients_en": "<full ingredients list translated to English, comma-separated>",
+  "allergens": ["<allergen1>","<allergen2>"],
   "veg_status": "vegan" | "vegetarian" | "non-veg" | "unclear",
-  "nutrition_per_100g": { "energy_kcal": <num or null>, "fat_g": <num>, "saturated_fat_g": <num>, "carbs_g": <num>, "sugar_g": <num>, "protein_g": <num>, "salt_g": <num> },
-  "indian_friendly_notes": "<short note for an Indian: contains beef? has gelatin? halal? good Indian alternative? any warning>",
+  "nutrition_per_100g": { "energy_kcal":<num|null>, "fat_g":<num|null>, "saturated_fat_g":<num|null>, "carbs_g":<num|null>, "sugar_g":<num|null>, "protein_g":<num|null>, "salt_g":<num|null> },
+  "indian_friendly_notes": "<2 short sentences MAX: warn if it contains pork/beef/gelatin/alcohol; mention if it's a good Indian alternative (e.g. 'Quark = Indian hung curd, great for raita'); say if it's halal-safe; if generic price tier is known (Aldi/Lidl private label = cheap), mention it>",
   "confidence": "high" | "medium" | "low"
 }
-If you can't identify it, set name to best guess and confidence to "low". Keep all fields, use null for unknown nutrition values. NEVER add fields outside this schema.`
+
+Rules:
+- ALWAYS return valid JSON matching the schema exactly. Use null for unknown numbers, '' for unknown strings, [] for unknown arrays.
+- veg_status: 'vegetarian' includes dairy/eggs but NO meat/fish/gelatin. 'vegan' = no animal products. If it has gelatin/lard/animal rennet → 'non-veg'.
+- For ingredients_en: translate every German ingredient. Don't just say "wheat flour, water" — be complete.
+- indian_friendly_notes: BE SPECIFIC. "Contains pork gelatin — skip if vegetarian." or "Quark is similar to Indian hung curd, perfect for shrikhand or raita." or "Hafer = oats, like Indian dalia."
+- If the image is unclear or not a food product, set name to your best guess and confidence='low'.`
       }, {
         role: 'user',
         content: [
-          { type: 'text', text: 'Identify this product. Translate the German label to English. Flag anything an Indian vegetarian student should know.' },
+          { type: 'text', text: 'Identify this product (German supermarket). Translate the label to English. Flag anything an Indian vegetarian should watch for.' },
           { type: 'image_url', image_url: { url: image } }
         ]
       }],
