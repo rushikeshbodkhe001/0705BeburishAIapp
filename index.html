@@ -4098,10 +4098,6 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         <span class="m-tile-icon">🚆</span>
         <span class="m-tile-label">Transport</span>
       </div>
-      <div class="m-tile" onclick="go('more')">
-        <span class="m-tile-icon">✨</span>
-        <span class="m-tile-label">More</span>
-      </div>
     </div>
 
     <!-- Safe-area spacer so SOS FAB never overlaps content -->
@@ -13587,8 +13583,18 @@ const OFS_ALLERGEN_OPTS = [
 ];
 
 function ofsLoadProfile() {
-  try { return JSON.parse(localStorage.getItem(OFS_PROFILE_KEY) || '{"allergies":[],"diet":"vegetarian"}'); }
-  catch(e) { return { allergies: [], diet: 'vegetarian' }; }
+  try {
+    const raw = localStorage.getItem(OFS_PROFILE_KEY);
+    if (!raw) {
+      // First-time default — Ankita is vegetarian
+      const def = { allergies: [], diet: 'vegetarian' };
+      localStorage.setItem(OFS_PROFILE_KEY, JSON.stringify(def));
+      return def;
+    }
+    const p = JSON.parse(raw);
+    if (!p.diet) p.diet = 'vegetarian';
+    return p;
+  } catch(e) { return { allergies: [], diet: 'vegetarian' }; }
 }
 function ofsSaveProfile(p) { try { localStorage.setItem(OFS_PROFILE_KEY, JSON.stringify(p)); } catch(e){} ofsRenderProfileSummary(); }
 function ofsRenderProfileSummary() {
@@ -13752,40 +13758,65 @@ async function ofsScanProduct(file) {
 function _ofsLocalIdentify(text) {
   if (!text || !text.trim()) return null;
   const trimmed = text.replace(/\s+/g,' ').trim();
-  const en = ofsTranslate(trimmed);
+  const lower = trimmed.toLowerCase();
+
+  // Extract ingredient block specifically (after "Zutaten:" line)
+  const zutMatch = text.match(/Zutaten[:\s]*([\s\S]{20,800}?)(?:Allergie|Nährwert|Mindestens|Mindesthaltbar|Hergestellt|$)/i);
+  const ingBlock = zutMatch ? zutMatch[1].trim() : trimmed;
+  const ingredients_en = ofsTranslate(ingBlock).replace(/\s+/g, ' ').trim();
+
   const allergens = ofsDetectAllergens(trimmed);
   const veg = ofsIsVeg(trimmed);
 
-  // Try to find product name = first non-trivial line of OCR
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length >= 3 && l.length <= 60 && !/^\d+/.test(l));
-  const guessName = lines[0] ? ofsTranslate(lines[0]) : 'Unknown product';
+  // Build Indian-friendly note from local detection
+  const notes = [];
+  if (veg === 'non-veg') {
+    const which = OFS_NONVEG_KEYS.filter(k => new RegExp('\\b' + k + '\\b').test(lower)).slice(0, 3);
+    notes.push('🚫 Contains animal products: ' + which.map(k => OFS_DICT[k] || k).join(', ') + '. Skip — you are vegetarian.');
+  } else if (veg === 'vegetarian') {
+    notes.push('✓ Vegetarian — contains dairy/egg but no meat/fish/gelatin.');
+  } else if (veg === 'vegan') {
+    notes.push('✓ Vegan — fully plant-based.');
+  } else {
+    notes.push('Could not confirm veg status. Check label for: Fleisch, Gelatine, tierisches Lab.');
+  }
+  // Indian alt suggestions
+  if (/quark/i.test(lower)) notes.push('Quark = Indian hung curd (chakka) — perfect for shrikhand/raita.');
+  if (/haferflocken|hafer/i.test(lower)) notes.push('Hafer = oats (like Indian dalia).');
+  if (/buchweizen/i.test(lower)) notes.push('Buchweizen = kuttu (buckwheat), used in vrat dishes.');
+  if (/linsen/i.test(lower)) notes.push('Linsen = lentils (dal).');
+  if (/kichererbsen/i.test(lower)) notes.push('Kichererbsen = chickpeas/chana.');
 
-  // Nutrition extraction (per 100g table)
+  // Best-effort product name = longest meaningful early line
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length >= 3 && l.length <= 60 && !/^\d/.test(l) && !/Zutat|Nährwert|Brennwert/i.test(l));
+  const guessName = lines.sort((a,b) => b.length - a.length)[0] || lines[0] || 'Unknown product';
+
+  // Nutrition extraction
   const nut = {};
-  const grab = (label, key, unit) => {
-    const re = new RegExp(label + '\\s*[:.]?\\s*([\\d.,]+)\\s*' + (unit||'(?:g|kcal|kJ)?'), 'i');
+  const grab = (label, key) => {
+    const re = new RegExp('(?:' + label + ')[^\\d]{0,12}([\\d.,]+)', 'i');
     const m = text.match(re);
     if (m) nut[key] = parseFloat(m[1].replace(',', '.'));
   };
-  grab('Brennwert|Energie|Energy', 'energy_kcal', 'kcal');
-  grab('Fett|Fat', 'fat_g', 'g');
-  grab('gesättigte', 'saturated_fat_g', 'g');
-  grab('Kohlenhydrate|Carbohydrates', 'carbs_g', 'g');
-  grab('Zucker|Sugars?', 'sugar_g', 'g');
-  grab('Eiweiß|Protein', 'protein_g', 'g');
-  grab('Salz|Salt', 'salt_g', 'g');
+  grab('Brennwert|Energie|Energy', 'energy_kcal');
+  grab('Fett|Fat', 'fat_g');
+  grab('gesättigt|saturated', 'saturated_fat_g');
+  grab('Kohlenhydrate|Carbohydrate', 'carbs_g');
+  grab('Zucker|Sugar', 'sugar_g');
+  grab('Eiweiß|Protein', 'protein_g');
+  grab('Salz|Salt', 'salt_g');
 
   return {
-    name: guessName,
+    name: ofsTranslate(guessName),
     brand: '',
     category: '',
-    ingredients_en: en.length > 800 ? en.slice(0, 800) + '…' : en,
+    ingredients_en: ingredients_en.length > 1200 ? ingredients_en.slice(0, 1200) + '…' : ingredients_en,
     allergens,
     veg_status: veg,
     nutrition_per_100g: nut,
-    indian_friendly_notes: '',
-    confidence: 'low',
-    _source: 'local'
+    indian_friendly_notes: notes.join(' '),
+    confidence: veg === 'unclear' ? 'low' : 'medium',
+    _source: 'local-offline'
   };
 }
 
@@ -13893,38 +13924,66 @@ async function _ofsSaveAIFav(jsonStr) {
   } catch(e){}
 }
 
-// Bundled DE→EN food/ingredient/allergen dictionary (works fully offline)
+// Bundled DE→EN food/ingredient/allergen dictionary (~500 terms, fully offline)
 const OFS_DICT = {
-  // Allergens (EU big-14)
-  'gluten':'gluten','weizen':'wheat','dinkel':'spelt','roggen':'rye','gerste':'barley','hafer':'oats',
-  'milch':'milk','milchpulver':'milk powder','laktose':'lactose','molke':'whey','butter':'butter','sahne':'cream','rahm':'cream','käse':'cheese','quark':'curd','joghurt':'yogurt',
-  'ei':'egg','eier':'eggs','eiweiß':'egg white','eigelb':'egg yolk','vollei':'whole egg',
-  'soja':'soy','sojabohnen':'soybeans','sojalecithin':'soy lecithin',
-  'erdnuss':'peanut','erdnüsse':'peanuts',
-  'nüsse':'tree nuts','mandel':'almond','mandeln':'almonds','haselnuss':'hazelnut','haselnüsse':'hazelnuts','walnuss':'walnut','walnüsse':'walnuts','cashew':'cashew','pistazie':'pistachio','pistazien':'pistachios',
-  'sesam':'sesame','sesamsamen':'sesame seeds',
-  'senf':'mustard','sellerie':'celery','lupine':'lupin',
-  'fisch':'fish','lachs':'salmon','thunfisch':'tuna','kabeljau':'cod','hering':'herring',
-  'krebstiere':'crustaceans','garnelen':'shrimp','krabben':'crab',
-  'weichtiere':'molluscs','muscheln':'mussels','austern':'oysters',
-  'sulfite':'sulfites','schwefeldioxid':'sulfur dioxide',
-  // Common ingredients
-  'zucker':'sugar','salz':'salt','wasser':'water','mehl':'flour','vollkornmehl':'wholemeal flour','stärke':'starch','maisstärke':'corn starch','kartoffelstärke':'potato starch',
-  'pflanzenöl':'vegetable oil','rapsöl':'rapeseed oil','sonnenblumenöl':'sunflower oil','olivenöl':'olive oil','palmöl':'palm oil','kokosöl':'coconut oil',
-  'hefe':'yeast','backpulver':'baking powder','natron':'baking soda','säurungsmittel':'acidity regulator','säuerungsmittel':'acidity regulator',
-  'aroma':'flavoring','aromen':'flavorings','natürliches aroma':'natural flavor','vanille':'vanilla','zimt':'cinnamon','kakao':'cocoa','schokolade':'chocolate','kaffee':'coffee',
-  'pfeffer':'pepper','knoblauch':'garlic','zwiebel':'onion','zwiebeln':'onions','tomate':'tomato','tomaten':'tomatoes','paprika':'paprika','kartoffel':'potato','kartoffeln':'potatoes','reis':'rice',
-  'fleisch':'meat','schwein':'pork','schweinefleisch':'pork','rind':'beef','rindfleisch':'beef','huhn':'chicken','hähnchen':'chicken','pute':'turkey','speck':'bacon','wurst':'sausage','schinken':'ham','gelatine':'gelatin',
-  // Veg flags
-  'vegetarisch':'vegetarian','vegan':'vegan','ohne fleisch':'meat-free','laktosefrei':'lactose-free','glutenfrei':'gluten-free','zuckerfrei':'sugar-free','bio':'organic',
-  // Nutrition labels
-  'nährwerte':'nutrition values','brennwert':'energy','energie':'energy','fett':'fat','davon gesättigte fettsäuren':'of which saturated fat','gesättigte fettsäuren':'saturated fat','kohlenhydrate':'carbohydrates','davon zucker':'of which sugars','ballaststoffe':'fiber','eiweiß':'protein','protein':'protein','natrium':'sodium',
-  // Common words on packaging
-  'enthält':'contains','kann enthalten':'may contain','spuren von':'traces of','hergestellt in':'produced in','mindestens haltbar bis':'best before','verbrauchen bis':'use by',
-  'zutaten':'ingredients','inhalt':'contents','nettofüllmenge':'net weight','allergiehinweise':'allergen advice','nach dem öffnen':'after opening','kühl lagern':'store cool','vor wärme schützen':'keep away from heat','trocken lagern':'store dry'
+  // ── Allergens (EU big-14) ──
+  'gluten':'gluten','weizen':'wheat','weizenmehl':'wheat flour','dinkel':'spelt','dinkelmehl':'spelt flour','roggen':'rye','roggenmehl':'rye flour','gerste':'barley','gerstenmalz':'barley malt','hafer':'oats','haferflocken':'rolled oats',
+  'milch':'milk','vollmilch':'whole milk','magermilch':'skim milk','milchpulver':'milk powder','milcheiweiß':'milk protein','laktose':'lactose','molke':'whey','molkenpulver':'whey powder','butter':'butter','butterreinfett':'clarified butter','sahne':'cream','schlagsahne':'whipping cream','rahm':'cream','käse':'cheese','frischkäse':'cream cheese','hartkäse':'hard cheese','schmelzkäse':'processed cheese','quark':'quark/curd cheese','speisequark':'curd cheese','joghurt':'yogurt','naturjoghurt':'natural yogurt','kefir':'kefir','buttermilch':'buttermilk','kondensmilch':'condensed milk',
+  'ei':'egg','eier':'eggs','eiweiß':'egg white / protein','eigelb':'egg yolk','vollei':'whole egg','eipulver':'egg powder',
+  'soja':'soy','sojabohnen':'soybeans','sojaeiweiß':'soy protein','sojalecithin':'soy lecithin','sojaöl':'soybean oil','tofu':'tofu','tempeh':'tempeh',
+  'erdnuss':'peanut','erdnüsse':'peanuts','erdnussöl':'peanut oil',
+  'nüsse':'tree nuts','schalenfrüchte':'tree nuts','mandel':'almond','mandeln':'almonds','haselnuss':'hazelnut','haselnüsse':'hazelnuts','walnuss':'walnut','walnüsse':'walnuts','cashewkern':'cashew','cashewkerne':'cashews','pistazie':'pistachio','pistazien':'pistachios','paranuss':'brazil nut','pekannuss':'pecan','macadamia':'macadamia',
+  'sesam':'sesame','sesamsamen':'sesame seeds','sesamöl':'sesame oil','tahini':'tahini',
+  'senf':'mustard','senfkörner':'mustard seeds','sellerie':'celery','sellerieblätter':'celery leaves','lupine':'lupin','lupinenmehl':'lupin flour',
+  'fisch':'fish','lachs':'salmon','thunfisch':'tuna','kabeljau':'cod','hering':'herring','sardine':'sardine','sardellen':'anchovies','forelle':'trout','makrele':'mackerel',
+  'krebstiere':'crustaceans','garnelen':'shrimp','krabben':'crab','hummer':'lobster','flusskrebs':'crayfish',
+  'weichtiere':'molluscs','muscheln':'mussels','austern':'oysters','tintenfisch':'squid','kalmar':'calamari',
+  'sulfite':'sulfites','schwefeldioxid':'sulfur dioxide','natriumsulfit':'sodium sulfite',
+  // ── Meat (CRITICAL for veg detection) ──
+  'fleisch':'meat','schweinefleisch':'pork','schwein':'pork','schinken':'ham','speck':'bacon','salami':'salami','wurst':'sausage','bratwurst':'bratwurst','würstchen':'sausages','frikadelle':'meatball','hackfleisch':'minced meat','leberwurst':'liver sausage','blutwurst':'blood sausage',
+  'rindfleisch':'beef','rind':'beef','kalbfleisch':'veal','kalb':'veal',
+  'huhn':'chicken','hühnchen':'chicken','hähnchen':'chicken','geflügel':'poultry','pute':'turkey','ente':'duck','gans':'goose',
+  'lamm':'lamb','lammfleisch':'lamb','ziege':'goat',
+  'gelatine':'gelatin','schweinegelatine':'pork gelatin','rindergelatine':'beef gelatin','schmalz':'lard','schweineschmalz':'pork lard','tierisches':'animal-derived',
+  'tierisches lab':'animal rennet','lab':'rennet',
+  // ── Common ingredients ──
+  'zucker':'sugar','rohrzucker':'cane sugar','traubenzucker':'glucose','fruchtzucker':'fructose','laktosezucker':'lactose','süßstoff':'sweetener','süßungsmittel':'sweetener','stevia':'stevia',
+  'salz':'salt','meersalz':'sea salt','jodsalz':'iodized salt',
+  'wasser':'water','mineralwasser':'mineral water',
+  'mehl':'flour','vollkornmehl':'wholemeal flour','dinkelmehl':'spelt flour','reismehl':'rice flour','maismehl':'corn flour',
+  'stärke':'starch','maisstärke':'corn starch','kartoffelstärke':'potato starch','weizenstärke':'wheat starch','modifizierte stärke':'modified starch',
+  'pflanzenöl':'vegetable oil','rapsöl':'rapeseed oil','sonnenblumenöl':'sunflower oil','olivenöl':'olive oil','palmöl':'palm oil','palmfett':'palm fat','kokosöl':'coconut oil','kokosfett':'coconut fat','margarine':'margarine','pflanzenfett':'vegetable fat',
+  'hefe':'yeast','trockenhefe':'dry yeast','frischhefe':'fresh yeast','backpulver':'baking powder','natron':'baking soda','säuerungsmittel':'acidity regulator','säurungsmittel':'acidity regulator','citronensäure':'citric acid','zitronensäure':'citric acid','essigsäure':'acetic acid','milchsäure':'lactic acid','weinsäure':'tartaric acid',
+  'aroma':'flavoring','aromen':'flavorings','natürliches aroma':'natural flavor','künstliches aroma':'artificial flavor',
+  'vanille':'vanilla','vanillezucker':'vanilla sugar','zimt':'cinnamon','kakao':'cocoa','kakaomasse':'cocoa mass','kakaobutter':'cocoa butter','schokolade':'chocolate','vollmilchschokolade':'milk chocolate','zartbitterschokolade':'dark chocolate','kaffee':'coffee','tee':'tea','schwarztee':'black tea','grüntee':'green tea',
+  'pfeffer':'pepper','schwarzer pfeffer':'black pepper','knoblauch':'garlic','knoblauchpulver':'garlic powder','zwiebel':'onion','zwiebeln':'onions','zwiebelpulver':'onion powder','tomate':'tomato','tomaten':'tomatoes','tomatenmark':'tomato paste','paprika':'paprika/bell pepper','paprikapulver':'paprika powder','kartoffel':'potato','kartoffeln':'potatoes','reis':'rice','basmatireis':'basmati rice','vollkornreis':'brown rice','nudeln':'pasta/noodles','spaghetti':'spaghetti','penne':'penne',
+  'brot':'bread','vollkornbrot':'wholemeal bread','toastbrot':'toast bread','brötchen':'bread roll','baguette':'baguette',
+  'butter':'butter','margarine':'margarine','aufstrich':'spread','marmelade':'jam','konfitüre':'jam','honig':'honey','sirup':'syrup','ahornsirup':'maple syrup',
+  // ── Vegetables / fruits ──
+  'gemüse':'vegetables','obst':'fruit','frucht':'fruit','früchte':'fruits',
+  'apfel':'apple','äpfel':'apples','banane':'banana','orange':'orange','zitrone':'lemon','traube':'grape','trauben':'grapes','erdbeere':'strawberry','erdbeeren':'strawberries','himbeere':'raspberry','heidelbeere':'blueberry','kirsche':'cherry','pfirsich':'peach','birne':'pear','melone':'melon','wassermelone':'watermelon','ananas':'pineapple','mango':'mango','kiwi':'kiwi','feige':'fig','dattel':'date',
+  'karotte':'carrot','möhre':'carrot','gurke':'cucumber','salat':'lettuce','blattsalat':'leaf lettuce','spinat':'spinach','brokkoli':'broccoli','blumenkohl':'cauliflower','aubergine':'eggplant','zucchini':'zucchini','kürbis':'pumpkin','rote bete':'beetroot','rettich':'radish','radieschen':'radishes','sellerie':'celery','lauch':'leek','porree':'leek','spargel':'asparagus','pilze':'mushrooms','champignons':'champignons','pilz':'mushroom',
+  'erbse':'pea','erbsen':'peas','bohne':'bean','bohnen':'beans','linsen':'lentils','kichererbsen':'chickpeas',
+  // ── Dairy alternatives & special diets ──
+  'haferdrink':'oat milk','sojadrink':'soy milk','mandeldrink':'almond milk','reisdrink':'rice milk','kokosdrink':'coconut milk',
+  // ── Spices ──
+  'gewürz':'spice','gewürze':'spices','kreuzkümmel':'cumin','kümmel':'caraway','koriander':'coriander','korianderpulver':'coriander powder','kurkuma':'turmeric','ingwer':'ginger','muskat':'nutmeg','nelken':'cloves','kardamom':'cardamom','lorbeer':'bay leaf','rosmarin':'rosemary','thymian':'thyme','basilikum':'basil','oregano':'oregano','petersilie':'parsley','dill':'dill','schnittlauch':'chives','chili':'chili','chilipulver':'chili powder','curry':'curry','currypulver':'curry powder',
+  // ── Veg flags / certifications ──
+  'vegetarisch':'vegetarian','vegan':'vegan','rein pflanzlich':'plant-based','pflanzenbasiert':'plant-based','ohne fleisch':'meat-free','fleischlos':'meatless','laktosefrei':'lactose-free','milchfrei':'dairy-free','glutenfrei':'gluten-free','weizenfrei':'wheat-free','zuckerfrei':'sugar-free','ohne zuckerzusatz':'no added sugar','bio':'organic','demeter':'demeter (organic)','fairtrade':'fairtrade','halal':'halal','koscher':'kosher',
+  // ── Nutrition labels ──
+  'nährwerte':'nutrition values','nährwertangaben':'nutrition information','durchschnittliche nährwerte':'average nutrition','brennwert':'energy','energie':'energy','fett':'fat','davon gesättigte fettsäuren':'of which saturated fat','gesättigte fettsäuren':'saturated fat','ungesättigte fettsäuren':'unsaturated fat','transfettsäuren':'trans fat','kohlenhydrate':'carbohydrates','davon zucker':'of which sugars','ballaststoffe':'fiber','eiweiß':'protein','protein':'protein','natrium':'sodium','salz':'salt','vitamin':'vitamin','calcium':'calcium','eisen':'iron',
+  'pro 100 g':'per 100g','pro 100ml':'per 100ml','pro portion':'per portion','tagesbedarf':'daily requirement',
+  // ── Packaging text ──
+  'enthält':'contains','kann enthalten':'may contain','spuren von':'traces of','hergestellt in':'produced in','produziert in':'produced in','herkunft':'origin','mindestens haltbar bis':'best before','verbrauchen bis':'use by','verbrauchsdatum':'use by date','geöffnet':'opened','ungeöffnet':'unopened','vor licht schützen':'keep away from light','vor wärme schützen':'keep away from heat','kühl lagern':'store cool','kühl und trocken lagern':'store cool and dry','trocken lagern':'store dry','im kühlschrank lagern':'store in fridge','tiefkühlware':'frozen food',
+  'zutaten':'ingredients','zutatenliste':'ingredient list','inhalt':'contents','inhaltsstoffe':'ingredients','nettofüllmenge':'net weight','nettogewicht':'net weight','füllmenge':'fill quantity','allergiehinweise':'allergen advice','allergene':'allergens','verzehrempfehlung':'consumption advice','zubereitung':'preparation',
+  // ── Misc that confuses Indians ──
+  'rinderfett':'beef fat','geflügelfett':'poultry fat','schweinefett':'pork fat','ochsenfett':'beef fat','tierisches fett':'animal fat',
+  'wein':'wine','bier':'beer','rum':'rum','alkohol':'alcohol','spirituosen':'spirits','rotwein':'red wine','weißwein':'white wine','rumaroma':'rum flavoring',
+  'l-cystein':'L-cysteine (often from feathers/hair, may be non-veg)','schellack':'shellac (insect-derived)','karmin':'carmine (insect-derived red color)','e120':'E120 carmine (insect)','e441':'E441 gelatin','e542':'E542 bone phosphate (animal)',
 };
 const OFS_ALLERGEN_KEYS = ['gluten','weizen','dinkel','roggen','gerste','hafer','milch','laktose','ei','eier','soja','erdnuss','erdnüsse','nüsse','mandel','haselnuss','walnuss','cashew','pistazie','sesam','senf','sellerie','lupine','fisch','lachs','thunfisch','krebstiere','garnelen','weichtiere','sulfite'];
-const OFS_NONVEG_KEYS = ['fleisch','schwein','rind','huhn','hähnchen','pute','speck','wurst','schinken','gelatine','fisch','lachs','thunfisch','kabeljau','hering','garnelen','krabben','muscheln'];
+const OFS_NONVEG_KEYS = ['fleisch','schwein','schweinefleisch','schweinefett','schweineschmalz','rind','rindfleisch','rinderfett','ochsenfett','kalb','kalbfleisch','huhn','hühnchen','hähnchen','geflügel','geflügelfett','pute','ente','gans','lamm','lammfleisch','ziege','speck','salami','wurst','würstchen','bratwurst','frikadelle','hackfleisch','schinken','leberwurst','blutwurst','gelatine','schweinegelatine','rindergelatine','schmalz','tierisches fett','tierisches lab','lab','fisch','lachs','thunfisch','kabeljau','hering','sardine','sardellen','forelle','makrele','garnelen','krabben','hummer','flusskrebs','muscheln','austern','tintenfisch','kalmar','schellack','karmin','e120','e441','e542','l-cystein'];
+const OFS_VEG_BUT_NOT_VEGAN_KEYS = ['milch','vollmilch','magermilch','milchpulver','milcheiweiß','laktose','molke','molkenpulver','butter','butterreinfett','sahne','rahm','käse','frischkäse','quark','speisequark','joghurt','kefir','buttermilch','kondensmilch','ei','eier','eiweiß','eigelb','vollei','eipulver','honig'];
 
 function ofsTranslate(deText) {
   if (!deText) return '';
@@ -13945,10 +14004,14 @@ function ofsDetectAllergens(text) {
   return [...found];
 }
 function ofsIsVeg(text) {
-  const t = text.toLowerCase();
-  if (/\bvegan\b/.test(t)) return 'vegan';
-  if (/\bvegetarisch\b/.test(t)) return 'vegetarian';
-  if (OFS_NONVEG_KEYS.some(k => t.includes(k))) return 'non-veg';
+  const t = (text || '').toLowerCase();
+  // Hard fail: any non-veg keyword
+  if (OFS_NONVEG_KEYS.some(k => new RegExp('\\b' + k + '\\b').test(t))) return 'non-veg';
+  // Explicit certifications
+  if (/\bvegan\b|\brein pflanzlich\b|\bpflanzenbasiert\b/.test(t)) return 'vegan';
+  if (/\bvegetarisch\b|\bovo[- ]?lacto/.test(t)) return 'vegetarian';
+  // Has dairy/egg → vegetarian
+  if (OFS_VEG_BUT_NOT_VEGAN_KEYS.some(k => new RegExp('\\b' + k + '\\b').test(t))) return 'vegetarian';
   return 'unclear';
 }
 
@@ -14152,14 +14215,23 @@ async function ofsRunOCR(file) {
   }
 }
 
-// Silent background preload — no UI, no errors shown to user. Libs cached by service worker.
+// Silent background preload — no UI. Caches Tesseract + German model so OCR works offline.
 async function ofsFirstLaunchPreload() {
   if (!navigator.onLine) return;
   if (window._ofsPreloadStarted) return;
   window._ofsPreloadStarted = true;
-  // Fire and forget — failures are silent, real usage will lazy-load anyway
-  _ofsLoadZX().catch(()=>{});
-  _ofsLoadTess().catch(()=>{});
+  try {
+    await _ofsLoadTess();
+    // Pre-warm German model — runs a tiny throwaway recognize() so model gets cached
+    if (!localStorage.getItem('ofs_tess_warmed_v1') && window.Tesseract) {
+      try {
+        // Use a 1x1 transparent PNG dataurl just to force model download
+        const blank = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Z2g8VkAAAAASUVORK5CYII=';
+        await Tesseract.recognize(blank, 'deu', { logger: () => {} });
+        localStorage.setItem('ofs_tess_warmed_v1', '1');
+      } catch(e) { /* still loaded the lib at least */ }
+    }
+  } catch(e){}
 }
 
 // Wire up: when entering scanner screen, init

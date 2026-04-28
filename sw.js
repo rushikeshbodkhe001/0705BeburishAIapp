@@ -1,14 +1,27 @@
 // Service Worker — caches scanner libs offline; HTML is always fresh.
-const CACHE = 'rish-ofs-v5-2026-04-28';
+const CACHE = 'rish-ofs-v6-2026-04-28';
 const RUNTIME_HOSTS = [
   'cdn.jsdelivr.net',
   'tessdata.projectnaptha.com',
+  'unpkg.com',
   'world.openfoodfacts.org',
   'fonts.googleapis.com',
   'fonts.gstatic.com',
 ];
+// Try to pre-fetch the heavy stuff so it's ready offline
+const PRECACHE_BEST_EFFORT = [
+  'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+];
 
-self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('install', e => {
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    await Promise.all(PRECACHE_BEST_EFFORT.map(u =>
+      fetch(u, { mode: 'cors' }).then(r => r.ok ? c.put(u, r) : null).catch(()=>{})
+    ));
+    self.skipWaiting();
+  })());
+});
 
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
