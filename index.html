@@ -13878,7 +13878,25 @@ window.addEventListener('load', () => {
 
   // Register service worker for offline mode (only on HTTPS / GitHub Pages)
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    // Listen for the new SW telling us to reload after taking over
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'RELOAD' && !sessionStorage.getItem('rish_sw_reloaded')) {
+        sessionStorage.setItem('rish_sw_reloaded', '1');
+        location.reload();
+      }
+    });
+    // Also reload when controllerchange fires (new SW took over)
+    let _ctrlReloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_ctrlReloaded) return;
+      _ctrlReloaded = true;
+      if (!sessionStorage.getItem('rish_sw_reloaded')) {
+        sessionStorage.setItem('rish_sw_reloaded', '1');
+        location.reload();
+      }
+    });
     navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.update();
       // Auto-reload when a new SW takes control
       reg.addEventListener('updatefound', () => {
         const nw = reg.installing;

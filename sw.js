@@ -1,5 +1,5 @@
 // Service Worker — caches scanner libs offline; HTML is always fresh.
-const CACHE = 'rish-ofs-v3';
+const CACHE = 'rish-ofs-v5-2026-04-28';
 const RUNTIME_HOSTS = [
   'cdn.jsdelivr.net',
   'tessdata.projectnaptha.com',
@@ -11,10 +11,16 @@ const RUNTIME_HOSTS = [
 self.addEventListener('install', e => { self.skipWaiting(); });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  e.waitUntil((async () => {
+    // Wipe ALL old caches
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    // Take control of any open page immediately
+    await self.clients.claim();
+    // Force-reload every controlled page so they pick up the new HTML
+    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    list.forEach(c => { try { c.navigate ? c.navigate(c.url) : c.postMessage({ type: 'RELOAD' }); } catch(e){} });
+  })());
 });
 
 self.addEventListener('fetch', e => {
