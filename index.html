@@ -4255,6 +4255,11 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         <span class="qa-label">Shopping</span>
         <span class="qa-sub">Grocery list</span>
       </div>
+      <div class="qa-card" onclick="go('offline-scan')">
+        <span class="qa-icon">📷</span>
+        <span class="qa-label">Offline Scan</span>
+        <span class="qa-sub">Works without network</span>
+      </div>
       <div class="qa-card" onclick="go('todo')">
         <span class="qa-icon">✅</span>
         <span class="qa-label">To-Do</span>
@@ -4732,6 +4737,63 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
     </div>
     <div class="section-title">Tasks</div>
     <div id="todo-list" style="margin:0 16px 14px;display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+
+  <!-- ══════════════ OFFLINE FOOD SCANNER ══════════════ -->
+  <div class="screen" id="s-offline-scan">
+    <div style="background:linear-gradient(135deg,#141414,#1E1E1E,#B8860B);padding:18px 16px 22px;position:relative;overflow:hidden">
+      <button onclick="go('home')" style="position:absolute;top:14px;left:12px;background:rgba(255,255,255,0.15);border:none;border-radius:18px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;font-family:'Nunito',sans-serif;cursor:pointer">← Home</button>
+      <div style="margin-top:24px;font-family:'Playfair Display',serif;font-size:20px;color:#fff;font-weight:600">📷 Offline Scanner</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px">Aldi/Lidl mein no network needed</div>
+      <div id="ofs-status-pill" style="display:inline-block;margin-top:8px;background:rgba(76,175,80,0.2);border:1px solid #4CAF50;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:800;color:#4CAF50;letter-spacing:0.05em">● ONLINE</div>
+    </div>
+
+    <!-- First-launch download banner -->
+    <div id="ofs-setup-banner" style="display:none;margin:14px 16px 0;background:linear-gradient(135deg,#FFF8D6,#FFFBE6);border:1.5px solid #FFCE00;border-radius:14px;padding:14px">
+      <div style="font-size:12px;font-weight:800;color:#B8860B;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">⚙️ Preparing offline mode</div>
+      <div id="ofs-setup-msg" style="font-size:12px;color:var(--text2);margin-bottom:8px">Downloading models for offline use… connect to wifi for first-time setup.</div>
+      <div style="background:rgba(0,0,0,0.08);border-radius:8px;height:6px;overflow:hidden"><div id="ofs-setup-bar" style="background:#B8860B;height:100%;width:0%;transition:width 0.3s"></div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="margin:14px 16px 0;display:flex;gap:8px">
+      <button id="ofs-tab-bc" onclick="ofsSwitchTab('bc')" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #CC0000;background:#CC0000;color:#fff;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">📊 Barcode</button>
+      <button id="ofs-tab-ocr" onclick="ofsSwitchTab('ocr')" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">📝 Label Photo</button>
+    </div>
+
+    <!-- Barcode pane -->
+    <div id="ofs-pane-bc" style="margin:12px 16px 0">
+      <div style="background:#000;border-radius:14px;overflow:hidden;aspect-ratio:4/3;position:relative">
+        <video id="ofs-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover"></video>
+        <div style="position:absolute;inset:20px;border:2px solid rgba(255,206,0,0.6);border-radius:10px;pointer-events:none"></div>
+        <div id="ofs-bc-msg" style="position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#fff;font-size:12px;text-shadow:0 1px 4px rgba(0,0,0,0.8)">Camera tap karun start kar</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="ofsStartBarcode()" id="ofs-bc-start" style="flex:1;padding:12px;border-radius:12px;border:none;background:#CC0000;color:#fff;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">▶ Start Scanner</button>
+        <button onclick="ofsStopBarcode()" style="padding:12px 18px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer">Stop</button>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text3);text-align:center">EAN-13 / EAN-8 / UPC supported · scans locally</div>
+    </div>
+
+    <!-- OCR pane -->
+    <div id="ofs-pane-ocr" style="display:none;margin:12px 16px 0">
+      <label style="display:block;background:var(--card);border:2px dashed var(--border);border-radius:14px;padding:28px 14px;text-align:center;cursor:pointer">
+        <input id="ofs-ocr-file" type="file" accept="image/*" capture="environment" onchange="ofsRunOCR(this.files[0])" style="display:none">
+        <div style="font-size:36px;margin-bottom:8px">📸</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">Snap label photo (German text)</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Will OCR + translate offline (after first download)</div>
+      </label>
+      <div id="ofs-ocr-progress" style="display:none;margin-top:10px;font-size:12px;color:var(--text2);text-align:center"></div>
+    </div>
+
+    <!-- Result -->
+    <div id="ofs-result" style="display:none;margin:14px 16px 0;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--sh)"></div>
+
+    <!-- Favourites -->
+    <div style="margin:14px 16px 80px">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">⭐ Saved favourites</div>
+      <div id="ofs-favs" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
   </div>
 
   <!-- ══════════════ SIM CARDS ══════════════ -->
@@ -13296,8 +13358,378 @@ function showOpenGreeting() {
   window._greetVoiceMsg = _vg + '. ' + timeMsg;
 }
 
+// ═══════════════════════════════════════════════════════════
+// 📷 OFFLINE FOOD SCANNER
+// ═══════════════════════════════════════════════════════════
+
+// Online/offline pill
+function _ofsUpdateNetworkPill() {
+  const p = document.getElementById('ofs-status-pill');
+  if (!p) return;
+  if (navigator.onLine) {
+    p.textContent = '● ONLINE';
+    p.style.background = 'rgba(76,175,80,0.2)';
+    p.style.borderColor = '#4CAF50';
+    p.style.color = '#4CAF50';
+  } else {
+    p.textContent = '✈ OFFLINE — using cache';
+    p.style.background = 'rgba(255,206,0,0.2)';
+    p.style.borderColor = '#FFCE00';
+    p.style.color = '#FFCE00';
+  }
+}
+window.addEventListener('online', _ofsUpdateNetworkPill);
+window.addEventListener('offline', _ofsUpdateNetworkPill);
+
+function ofsSwitchTab(t) {
+  document.getElementById('ofs-pane-bc').style.display  = t === 'bc'  ? '' : 'none';
+  document.getElementById('ofs-pane-ocr').style.display = t === 'ocr' ? '' : 'none';
+  const bc  = document.getElementById('ofs-tab-bc');
+  const ocr = document.getElementById('ofs-tab-ocr');
+  [bc, ocr].forEach(b => { b.style.background='var(--card)'; b.style.color='var(--text)'; b.style.borderColor='var(--border)'; });
+  const active = t === 'bc' ? bc : ocr;
+  active.style.background = '#CC0000'; active.style.color = '#fff'; active.style.borderColor = '#CC0000';
+  if (t !== 'bc') ofsStopBarcode();
+}
+
+// Bundled DE→EN food/ingredient/allergen dictionary (works fully offline)
+const OFS_DICT = {
+  // Allergens (EU big-14)
+  'gluten':'gluten','weizen':'wheat','dinkel':'spelt','roggen':'rye','gerste':'barley','hafer':'oats',
+  'milch':'milk','milchpulver':'milk powder','laktose':'lactose','molke':'whey','butter':'butter','sahne':'cream','rahm':'cream','käse':'cheese','quark':'curd','joghurt':'yogurt',
+  'ei':'egg','eier':'eggs','eiweiß':'egg white','eigelb':'egg yolk','vollei':'whole egg',
+  'soja':'soy','sojabohnen':'soybeans','sojalecithin':'soy lecithin',
+  'erdnuss':'peanut','erdnüsse':'peanuts',
+  'nüsse':'tree nuts','mandel':'almond','mandeln':'almonds','haselnuss':'hazelnut','haselnüsse':'hazelnuts','walnuss':'walnut','walnüsse':'walnuts','cashew':'cashew','pistazie':'pistachio','pistazien':'pistachios',
+  'sesam':'sesame','sesamsamen':'sesame seeds',
+  'senf':'mustard','sellerie':'celery','lupine':'lupin',
+  'fisch':'fish','lachs':'salmon','thunfisch':'tuna','kabeljau':'cod','hering':'herring',
+  'krebstiere':'crustaceans','garnelen':'shrimp','krabben':'crab',
+  'weichtiere':'molluscs','muscheln':'mussels','austern':'oysters',
+  'sulfite':'sulfites','schwefeldioxid':'sulfur dioxide',
+  // Common ingredients
+  'zucker':'sugar','salz':'salt','wasser':'water','mehl':'flour','vollkornmehl':'wholemeal flour','stärke':'starch','maisstärke':'corn starch','kartoffelstärke':'potato starch',
+  'pflanzenöl':'vegetable oil','rapsöl':'rapeseed oil','sonnenblumenöl':'sunflower oil','olivenöl':'olive oil','palmöl':'palm oil','kokosöl':'coconut oil',
+  'hefe':'yeast','backpulver':'baking powder','natron':'baking soda','säurungsmittel':'acidity regulator','säuerungsmittel':'acidity regulator',
+  'aroma':'flavoring','aromen':'flavorings','natürliches aroma':'natural flavor','vanille':'vanilla','zimt':'cinnamon','kakao':'cocoa','schokolade':'chocolate','kaffee':'coffee',
+  'pfeffer':'pepper','knoblauch':'garlic','zwiebel':'onion','zwiebeln':'onions','tomate':'tomato','tomaten':'tomatoes','paprika':'paprika','kartoffel':'potato','kartoffeln':'potatoes','reis':'rice',
+  'fleisch':'meat','schwein':'pork','schweinefleisch':'pork','rind':'beef','rindfleisch':'beef','huhn':'chicken','hähnchen':'chicken','pute':'turkey','speck':'bacon','wurst':'sausage','schinken':'ham','gelatine':'gelatin',
+  // Veg flags
+  'vegetarisch':'vegetarian','vegan':'vegan','ohne fleisch':'meat-free','laktosefrei':'lactose-free','glutenfrei':'gluten-free','zuckerfrei':'sugar-free','bio':'organic',
+  // Nutrition labels
+  'nährwerte':'nutrition values','brennwert':'energy','energie':'energy','fett':'fat','davon gesättigte fettsäuren':'of which saturated fat','gesättigte fettsäuren':'saturated fat','kohlenhydrate':'carbohydrates','davon zucker':'of which sugars','ballaststoffe':'fiber','eiweiß':'protein','protein':'protein','natrium':'sodium',
+  // Common words on packaging
+  'enthält':'contains','kann enthalten':'may contain','spuren von':'traces of','hergestellt in':'produced in','mindestens haltbar bis':'best before','verbrauchen bis':'use by',
+  'zutaten':'ingredients','inhalt':'contents','nettofüllmenge':'net weight','allergiehinweise':'allergen advice','nach dem öffnen':'after opening','kühl lagern':'store cool','vor wärme schützen':'keep away from heat','trocken lagern':'store dry'
+};
+const OFS_ALLERGEN_KEYS = ['gluten','weizen','dinkel','roggen','gerste','hafer','milch','laktose','ei','eier','soja','erdnuss','erdnüsse','nüsse','mandel','haselnuss','walnuss','cashew','pistazie','sesam','senf','sellerie','lupine','fisch','lachs','thunfisch','krebstiere','garnelen','weichtiere','sulfite'];
+const OFS_NONVEG_KEYS = ['fleisch','schwein','rind','huhn','hähnchen','pute','speck','wurst','schinken','gelatine','fisch','lachs','thunfisch','kabeljau','hering','garnelen','krabben','muscheln'];
+
+function ofsTranslate(deText) {
+  if (!deText) return '';
+  let out = deText;
+  // sort by length desc to match multi-word phrases first
+  const keys = Object.keys(OFS_DICT).sort((a,b) => b.length - a.length);
+  keys.forEach(k => {
+    const re = new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'gi');
+    out = out.replace(re, OFS_DICT[k]);
+  });
+  return out;
+}
+
+function ofsDetectAllergens(text) {
+  const t = text.toLowerCase();
+  const found = new Set();
+  OFS_ALLERGEN_KEYS.forEach(k => { if (t.includes(k)) found.add(OFS_DICT[k] || k); });
+  return [...found];
+}
+function ofsIsVeg(text) {
+  const t = text.toLowerCase();
+  if (/\bvegan\b/.test(t)) return 'vegan';
+  if (/\bvegetarisch\b/.test(t)) return 'vegetarian';
+  if (OFS_NONVEG_KEYS.some(k => t.includes(k))) return 'non-veg';
+  return 'unclear';
+}
+
+// ── IndexedDB cache for product lookups (LRU 50MB) ──
+const OFS_DB_NAME = 'ofs_cache_v1';
+function ofsDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(OFS_DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('products')) {
+        const s = db.createObjectStore('products', { keyPath: 'barcode' });
+        s.createIndex('lastAccessed', 'lastAccessed');
+      }
+      if (!db.objectStoreNames.contains('favourites')) {
+        db.createObjectStore('favourites', { keyPath: 'barcode' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function ofsCacheGet(barcode) {
+  const db = await ofsDB();
+  return new Promise(r => {
+    const tx = db.transaction('products', 'readwrite');
+    const req = tx.objectStore('products').get(barcode);
+    req.onsuccess = () => {
+      const v = req.result;
+      if (v) { v.lastAccessed = Date.now(); tx.objectStore('products').put(v); }
+      r(v);
+    };
+    req.onerror = () => r(null);
+  });
+}
+async function ofsCachePut(barcode, data) {
+  const db = await ofsDB();
+  const tx = db.transaction('products', 'readwrite');
+  tx.objectStore('products').put({ barcode, data, lastAccessed: Date.now(), size: JSON.stringify(data).length });
+  await new Promise(r => tx.oncomplete = r);
+  ofsEvictIfOver(50 * 1024 * 1024);
+}
+async function ofsEvictIfOver(maxBytes) {
+  const db = await ofsDB();
+  const tx = db.transaction('products', 'readwrite');
+  const store = tx.objectStore('products');
+  const all = await new Promise(r => { const req = store.getAll(); req.onsuccess = () => r(req.result || []); });
+  let total = all.reduce((s, v) => s + (v.size || 0), 0);
+  if (total <= maxBytes) return;
+  all.sort((a,b) => a.lastAccessed - b.lastAccessed);
+  for (const v of all) {
+    if (total <= maxBytes) break;
+    store.delete(v.barcode);
+    total -= (v.size || 0);
+  }
+}
+async function ofsFavSave(barcode, name, brand) {
+  const db = await ofsDB();
+  const tx = db.transaction('favourites', 'readwrite');
+  tx.objectStore('favourites').put({ barcode, name, brand, savedAt: Date.now() });
+  await new Promise(r => tx.oncomplete = r);
+  ofsRenderFavs();
+}
+async function ofsFavRemove(barcode) {
+  const db = await ofsDB();
+  const tx = db.transaction('favourites', 'readwrite');
+  tx.objectStore('favourites').delete(barcode);
+  await new Promise(r => tx.oncomplete = r);
+  ofsRenderFavs();
+}
+async function ofsRenderFavs() {
+  const el = document.getElementById('ofs-favs');
+  if (!el) return;
+  const db = await ofsDB();
+  const all = await new Promise(r => { const req = db.transaction('favourites').objectStore('favourites').getAll(); req.onsuccess = () => r(req.result || []); });
+  if (!all.length) { el.innerHTML = '<div style="font-size:11px;color:var(--text3);text-align:center;padding:6px">Saved scans will appear here</div>'; return; }
+  el.innerHTML = all.map(f => `<div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px"><span style="flex:1"><strong>${f.name||'Unknown'}</strong>${f.brand?' · '+f.brand:''}<div style="font-size:10px;color:var(--text3);font-family:monospace">${f.barcode}</div></span><button onclick="ofsLookupCached('${f.barcode}')" style="background:#CC0000;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">Open</button><button onclick="ofsFavRemove('${f.barcode}')" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer">✕</button></div>`).join('');
+}
+
+// ── Barcode scanner via @zxing/browser (CDN, cached by service worker) ──
+let _ofsZxReader = null, _ofsZxControls = null;
+async function _ofsLoadZX() {
+  if (window.ZXingBrowser) return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+async function ofsStartBarcode() {
+  const msg = document.getElementById('ofs-bc-msg');
+  msg.textContent = 'Loading scanner…';
+  try {
+    await _ofsLoadZX();
+    if (!_ofsZxReader) _ofsZxReader = new ZXingBrowser.BrowserMultiFormatReader();
+    const video = document.getElementById('ofs-video');
+    msg.textContent = 'Point at barcode…';
+    _ofsZxControls = await _ofsZxReader.decodeFromVideoDevice(undefined, video, (result, err) => {
+      if (result) {
+        msg.textContent = '✓ ' + result.getText();
+        ofsStopBarcode();
+        ofsLookup(result.getText());
+      }
+    });
+  } catch(e) {
+    msg.textContent = '⚠ Camera blocked. Allow access in settings.';
+  }
+}
+function ofsStopBarcode() {
+  if (_ofsZxControls) { try { _ofsZxControls.stop(); } catch(e){} _ofsZxControls = null; }
+  const v = document.getElementById('ofs-video');
+  if (v && v.srcObject) { v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
+}
+
+// ── Product lookup: cache → online OpenFoodFacts → display ──
+async function ofsLookup(barcode) {
+  const cached = await ofsCacheGet(barcode);
+  if (cached) { ofsRenderProduct(cached.data, true); return; }
+  if (!navigator.onLine) {
+    ofsRenderProduct({ _missing: true, barcode }, true);
+    return;
+  }
+  try {
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+    const j = await r.json();
+    if (j.status === 1 && j.product) {
+      const p = j.product;
+      const data = {
+        barcode,
+        name: p.product_name_en || p.product_name || p.product_name_de || 'Unknown product',
+        brand: p.brands || '',
+        image: p.image_front_small_url || p.image_url || '',
+        category: p.categories || '',
+        ingredients_de: p.ingredients_text_de || p.ingredients_text || '',
+        allergens: (p.allergens_tags || []).map(a => a.replace(/^en:/,'').replace(/-/g,' ')),
+        nutriments: p.nutriments || {},
+        labels: p.labels_tags || [],
+      };
+      await ofsCachePut(barcode, data);
+      ofsRenderProduct(data, false);
+    } else {
+      ofsRenderProduct({ _missing: true, barcode }, false);
+    }
+  } catch(e) {
+    ofsRenderProduct({ _missing: true, barcode, _error: e.message }, false);
+  }
+}
+async function ofsLookupCached(barcode) {
+  const cached = await ofsCacheGet(barcode);
+  if (cached) ofsRenderProduct(cached.data, true);
+}
+
+function ofsRenderProduct(data, fromCache) {
+  const el = document.getElementById('ofs-result');
+  el.style.display = 'block';
+  if (data._missing) {
+    el.innerHTML = `
+      <div style="text-align:center">
+        <div style="font-size:34px;margin-bottom:6px">❓</div>
+        <div style="font-weight:800;font-size:14px;margin-bottom:4px">Not in database</div>
+        <div style="font-size:12px;color:var(--text3);font-family:monospace;margin-bottom:10px">${data.barcode}</div>
+        <div style="font-size:12px;color:var(--text2)">Try snapping the label photo (📝 tab) — works offline 💛</div>
+      </div>`;
+    return;
+  }
+  const ingEN = ofsTranslate(data.ingredients_de || '');
+  const allergens = data.allergens && data.allergens.length ? data.allergens : ofsDetectAllergens(data.ingredients_de || '');
+  const veg = (data.labels && data.labels.some(l => l.includes('vegan'))) ? 'vegan'
+            : (data.labels && data.labels.some(l => l.includes('vegetarian'))) ? 'vegetarian'
+            : ofsIsVeg(data.ingredients_de || '');
+  const vegBadge = veg === 'vegan' ? '<span style="background:#4CAF50;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🌱 VEGAN</span>'
+                 : veg === 'vegetarian' ? '<span style="background:#8BC34A;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🥬 VEG</span>'
+                 : veg === 'non-veg' ? '<span style="background:#CC0000;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🍖 NON-VEG</span>'
+                 : '';
+  const n = data.nutriments || {};
+  const nutRow = (lbl, key, unit) => n[key] != null ? `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${lbl}</span><strong>${(+n[key]).toFixed(1)} ${unit}</strong></div>` : '';
+  el.innerHTML = `
+    ${data.image ? `<div style="text-align:center;margin-bottom:10px"><img src="${data.image}" style="max-height:120px;border-radius:10px"></div>` : ''}
+    <div style="font-weight:800;font-size:16px;margin-bottom:2px">${data.name}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${data.brand || ''} ${vegBadge} ${fromCache ? '<span style="background:#FFCE0033;color:#B8860B;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:800;border:1px solid #FFCE0066">📦 CACHED</span>' : ''}</div>
+    ${allergens.length ? `<div style="background:rgba(204,0,0,0.08);border:1px solid rgba(204,0,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#CC0000;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">⚠ Allergens</div><div style="font-size:12px;color:#CC0000;font-weight:700">${allergens.join(' · ')}</div></div>` : ''}
+    <details style="margin-bottom:10px"><summary style="font-size:12px;font-weight:700;cursor:pointer;color:var(--text2)">📝 Ingredients (translated)</summary><div style="margin-top:6px;font-size:11.5px;color:var(--text2);line-height:1.6">${ingEN || '<i>not available</i>'}</div></details>
+    ${(n['energy-kcal_100g'] != null || n.fat_100g != null) ? `<div style="background:var(--cream);border-radius:10px;padding:10px;margin-top:6px"><div style="font-size:10px;font-weight:800;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">Per 100g</div>
+      ${nutRow('Energy','energy-kcal_100g','kcal')}
+      ${nutRow('Fat','fat_100g','g')}
+      ${nutRow('Saturates','saturated-fat_100g','g')}
+      ${nutRow('Carbohydrates','carbohydrates_100g','g')}
+      ${nutRow('Sugars','sugars_100g','g')}
+      ${nutRow('Protein','proteins_100g','g')}
+      ${nutRow('Salt','salt_100g','g')}</div>` : ''}
+    <button onclick="ofsFavSave('${data.barcode}', ${JSON.stringify(data.name)}, ${JSON.stringify(data.brand||'')})" style="margin-top:10px;width:100%;padding:10px;border-radius:10px;border:1px solid #FFCE00;background:rgba(255,206,0,0.12);color:#B8860B;font-size:12px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">⭐ Save to favourites</button>`;
+}
+
+// ── OCR via Tesseract.js (German) ──
+let _ofsTess = null;
+async function _ofsLoadTess() {
+  if (window.Tesseract) return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+async function ofsRunOCR(file) {
+  if (!file) return;
+  const prog = document.getElementById('ofs-ocr-progress');
+  prog.style.display = 'block';
+  prog.textContent = 'Loading OCR engine…';
+  try {
+    await _ofsLoadTess();
+    prog.textContent = 'Reading German text…';
+    const { data: { text } } = await Tesseract.recognize(file, 'deu', {
+      logger: m => { if (m.status && m.progress != null) prog.textContent = `${m.status} · ${Math.round(m.progress*100)}%`; }
+    });
+    prog.style.display = 'none';
+    const en = ofsTranslate(text);
+    const allergens = ofsDetectAllergens(text);
+    const veg = ofsIsVeg(text);
+    const vegBadge = veg === 'vegan' ? '🌱 VEGAN' : veg === 'vegetarian' ? '🥬 VEG' : veg === 'non-veg' ? '🍖 NON-VEG' : '';
+    const el = document.getElementById('ofs-result');
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="font-weight:800;font-size:14px;margin-bottom:6px">📸 Label OCR result</div>
+      ${vegBadge ? `<div style="display:inline-block;background:rgba(76,175,80,0.15);color:#4CAF50;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800;margin-bottom:8px">${vegBadge}</div>` : ''}
+      ${allergens.length ? `<div style="background:rgba(204,0,0,0.08);border:1px solid rgba(204,0,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#CC0000;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">⚠ Allergens detected</div><div style="font-size:12px;color:#CC0000;font-weight:700">${allergens.join(' · ')}</div></div>` : ''}
+      <details open><summary style="font-size:12px;font-weight:700;cursor:pointer;color:var(--text2)">🇬🇧 Translated</summary><div style="margin-top:6px;font-size:12px;color:var(--text);line-height:1.6;white-space:pre-wrap">${en}</div></details>
+      <details style="margin-top:8px"><summary style="font-size:12px;font-weight:700;cursor:pointer;color:var(--text3)">🇩🇪 Original German</summary><div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${text}</div></details>`;
+  } catch(e) {
+    prog.textContent = '⚠ OCR failed: ' + e.message;
+  }
+}
+
+// First-launch model preload (when online)
+async function ofsFirstLaunchPreload() {
+  if (localStorage.getItem('ofs_models_ready_v1')) return;
+  if (!navigator.onLine) return;
+  const banner = document.getElementById('ofs-setup-banner');
+  const msg = document.getElementById('ofs-setup-msg');
+  const bar = document.getElementById('ofs-setup-bar');
+  if (!banner) return;
+  banner.style.display = 'block';
+  try {
+    msg.textContent = 'Downloading barcode scanner…'; bar.style.width = '20%';
+    await _ofsLoadZX();
+    msg.textContent = 'Downloading OCR engine…'; bar.style.width = '50%';
+    await _ofsLoadTess();
+    msg.textContent = 'Downloading German OCR model…'; bar.style.width = '75%';
+    // pre-fetch the German tesseract data so it's in service worker cache
+    try { await fetch('https://tessdata.projectnaptha.com/4.0.0/deu.traineddata.gz'); } catch(e){}
+    bar.style.width = '100%';
+    msg.textContent = '✅ Ready! Now works in airplane mode.';
+    localStorage.setItem('ofs_models_ready_v1', '1');
+    setTimeout(() => banner.style.display = 'none', 2000);
+  } catch(e) {
+    msg.textContent = '⚠ Download failed — try again on wifi: ' + e.message;
+  }
+}
+
+// Wire up: when entering scanner screen, init
+const _origGo_OFS = window.go;
+if (typeof _origGo_OFS === 'function') {
+  window.go = function(name, _internal) {
+    const r = _origGo_OFS.apply(this, arguments);
+    if (name === 'offline-scan') {
+      _ofsUpdateNetworkPill();
+      ofsRenderFavs();
+      ofsFirstLaunchPreload();
+    } else {
+      ofsStopBarcode();
+    }
+    return r;
+  };
+}
+
 // Boot sequence
 window.addEventListener('load', () => {
+  // Register service worker for offline mode (only on HTTPS / GitHub Pages)
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
   setTimeout(showOpenGreeting, 1600);
   // Notifications — stagger after greeting so they don't overlap
   setTimeout(maybeShowRishNotif, 6200);
