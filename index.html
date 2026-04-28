@@ -4090,9 +4090,9 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         <span class="m-tile-icon">📷</span>
         <span class="m-tile-label">Scan</span>
       </div>
-      <div class="m-tile" onclick="go('shopping')">
-        <span class="m-tile-icon">🛒</span>
-        <span class="m-tile-label">Shopping</span>
+      <div class="m-tile" onclick="go('offline-scan')">
+        <span class="m-tile-icon">🛍️</span>
+        <span class="m-tile-label">Grocery</span>
       </div>
       <div class="m-tile" onclick="go('more')">
         <span class="m-tile-icon">✨</span>
@@ -4254,11 +4254,6 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         <span class="qa-icon">🛒</span>
         <span class="qa-label">Shopping</span>
         <span class="qa-sub">Grocery list</span>
-      </div>
-      <div class="qa-card" onclick="go('offline-scan')">
-        <span class="qa-icon">🛍️</span>
-        <span class="qa-label">Grocery Assistant</span>
-        <span class="qa-sub">Scan + translate offline</span>
       </div>
       <div class="qa-card" onclick="go('todo')">
         <span class="qa-icon">✅</span>
@@ -13946,7 +13941,8 @@ async function ofsRunOCR(file) {
   }
 }
 
-// First-launch model preload (when online)
+// First-launch model preload (when online). Best-effort: any single step failing is OK,
+// the libs will lazy-load on first real use anyway.
 async function ofsFirstLaunchPreload() {
   if (localStorage.getItem('ofs_models_ready_v1')) return;
   if (!navigator.onLine) return;
@@ -13955,20 +13951,27 @@ async function ofsFirstLaunchPreload() {
   const bar = document.getElementById('ofs-setup-bar');
   if (!banner) return;
   banner.style.display = 'block';
-  try {
-    msg.textContent = 'Downloading barcode scanner…'; bar.style.width = '20%';
-    await _ofsLoadZX();
-    msg.textContent = 'Downloading OCR engine…'; bar.style.width = '50%';
-    await _ofsLoadTess();
-    msg.textContent = 'Downloading German OCR model…'; bar.style.width = '75%';
-    // pre-fetch the German tesseract data so it's in service worker cache
-    try { await fetch('https://tessdata.projectnaptha.com/4.0.0/deu.traineddata.gz'); } catch(e){}
-    bar.style.width = '100%';
-    msg.textContent = '✅ Ready! Now works in airplane mode.';
+  let bcOk = false, tessOk = false;
+
+  msg.textContent = 'Downloading barcode scanner…'; bar.style.width = '15%';
+  try { await _ofsLoadZX(); bcOk = true; } catch(e){}
+
+  msg.textContent = 'Downloading OCR engine…'; bar.style.width = '55%';
+  try { await _ofsLoadTess(); tessOk = true; } catch(e){}
+
+  // German model will be auto-downloaded by Tesseract on first OCR use; CDN allows that.
+  // We don't pre-fetch here because tessdata host doesn't always allow CORS.
+  bar.style.width = '100%';
+
+  if (bcOk && tessOk) {
+    msg.textContent = '✅ Scanner ready. Label OCR will fetch the German model the first time you scan a label.';
     localStorage.setItem('ofs_models_ready_v1', '1');
-    setTimeout(() => banner.style.display = 'none', 2000);
-  } catch(e) {
-    msg.textContent = '⚠ Download failed — try again on wifi: ' + e.message;
+    setTimeout(() => banner.style.display = 'none', 2500);
+  } else if (bcOk) {
+    msg.textContent = '✓ Barcode scanner ready. Label OCR will load on first use.';
+    setTimeout(() => banner.style.display = 'none', 2500);
+  } else {
+    msg.textContent = '⚠ Setup paused — connect to wifi and reopen this screen to retry.';
   }
 }
 
