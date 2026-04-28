@@ -13862,9 +13862,38 @@ if (typeof _origGo_OFS === 'function') {
 
 // Boot sequence
 window.addEventListener('load', () => {
+  // ── FORCE-UPDATE GUARD ──
+  // If we're on an old build (no Transport tile in DOM), nuke caches + SW + hard reload once.
+  (function _ensureFreshBuild(){
+    const hasTransport = !!document.querySelector('[onclick*="transport"]');
+    const flagged = sessionStorage.getItem('rish_force_reloaded');
+    if (!hasTransport && !flagged && 'serviceWorker' in navigator) {
+      sessionStorage.setItem('rish_force_reloaded', '1');
+      navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister())))
+        .then(() => caches && caches.keys ? caches.keys().then(k => Promise.all(k.map(c => caches.delete(c)))) : null)
+        .then(() => location.reload(true));
+      return;
+    }
+  })();
+
   // Register service worker for offline mode (only on HTTPS / GitHub Pages)
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Auto-reload when a new SW takes control
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'activated' && navigator.serviceWorker.controller) {
+            // a fresh worker is now controlling — reload to apply
+            if (!sessionStorage.getItem('rish_sw_reloaded')) {
+              sessionStorage.setItem('rish_sw_reloaded', '1');
+              location.reload();
+            }
+          }
+        });
+      });
+    }).catch(()=>{});
   }
   // Silently prefetch scanner libs in background so first scan is instant
   setTimeout(() => { try { ofsFirstLaunchPreload(); } catch(e){} }, 4000);
