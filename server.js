@@ -328,6 +328,50 @@ Rules:
   }
 });
 
+// ── Product photo identification (GPT-4o vision) ──────────
+app.post('/scan-product', async (req, res) => {
+  const { image } = req.body;
+  if (!image || typeof image !== 'string') return res.status(400).json({ error: 'image required (base64 data URL)' });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{
+        role: 'system',
+        content: `You are a German supermarket product identifier for an Indian student in Marburg.
+Look at the product photo and return ONLY valid JSON (no markdown, no prose) with this exact schema:
+{
+  "name": "<product name in English>",
+  "brand": "<brand if visible>",
+  "category": "<food category, e.g. dairy/snack/bread/drink>",
+  "ingredients_en": "<ingredients translated to English, comma-separated>",
+  "allergens": ["<allergen1>", "<allergen2>"],
+  "veg_status": "vegan" | "vegetarian" | "non-veg" | "unclear",
+  "nutrition_per_100g": { "energy_kcal": <num or null>, "fat_g": <num>, "saturated_fat_g": <num>, "carbs_g": <num>, "sugar_g": <num>, "protein_g": <num>, "salt_g": <num> },
+  "indian_friendly_notes": "<short note for an Indian: contains beef? has gelatin? halal? good Indian alternative? any warning>",
+  "confidence": "high" | "medium" | "low"
+}
+If you can't identify it, set name to best guess and confidence to "low". Keep all fields, use null for unknown nutrition values. NEVER add fields outside this schema.`
+      }, {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Identify this product. Translate the German label to English. Flag anything an Indian vegetarian student should know.' },
+          { type: 'image_url', image_url: { url: image } }
+        ]
+      }],
+      max_tokens: 700,
+      temperature: 0.2,
+      response_format: { type: 'json_object' }
+    });
+    const raw = completion.choices[0].message.content.trim();
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch(e) { parsed = { name: 'Unknown', error: 'parse_failed', raw }; }
+    res.json(parsed);
+  } catch(err) {
+    console.error('scan-product error:', err.message);
+    res.status(500).json({ error: 'AI unavailable', detail: err.message });
+  }
+});
+
 // ── Flight Status proxy ───────────────────────────────────
 app.get('/flight-status', async (req, res) => {
   const { flight, date } = req.query;

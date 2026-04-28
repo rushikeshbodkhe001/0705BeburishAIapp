@@ -4864,31 +4864,29 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
 
     <!-- Tabs -->
     <div style="margin:14px 16px 0;display:flex;gap:8px">
-      <button id="ofs-tab-bc" onclick="ofsSwitchTab('bc')" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #CC0000;background:#CC0000;color:#fff;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">📊 Barcode</button>
-      <button id="ofs-tab-ocr" onclick="ofsSwitchTab('ocr')" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">📝 Label Photo</button>
+      <button id="ofs-tab-prod" onclick="ofsSwitchTab('prod')" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid #CC0000;background:#CC0000;color:#fff;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">📸 Snap Product</button>
+      <button id="ofs-tab-ocr" onclick="ofsSwitchTab('ocr')" style="flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">📝 Label Only</button>
     </div>
 
-    <!-- Barcode pane -->
-    <div id="ofs-pane-bc" style="margin:12px 16px 0">
-      <div style="background:#000;border-radius:14px;overflow:hidden;aspect-ratio:4/3;position:relative">
-        <video id="ofs-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover"></video>
-        <div style="position:absolute;inset:20px;border:2px solid rgba(255,206,0,0.6);border-radius:10px;pointer-events:none"></div>
-        <div id="ofs-bc-msg" style="position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#fff;font-size:12px;text-shadow:0 1px 4px rgba(0,0,0,0.8)">Camera tap karun start kar</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button onclick="ofsStartBarcode()" id="ofs-bc-start" style="flex:1;padding:12px;border-radius:12px;border:none;background:#CC0000;color:#fff;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">▶ Start Scanner</button>
-        <button onclick="ofsStopBarcode()" style="padding:12px 18px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer">Stop</button>
-      </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--text3);text-align:center">EAN-13 / EAN-8 / UPC supported · scans locally</div>
+    <!-- Snap product pane -->
+    <div id="ofs-pane-prod" style="margin:12px 16px 0">
+      <label style="display:block;background:linear-gradient(135deg,#141414,#2A2A2A,#B8860B);border-radius:18px;padding:36px 14px;text-align:center;cursor:pointer;color:#fff;position:relative;overflow:hidden">
+        <input id="ofs-prod-file" type="file" accept="image/*" capture="environment" onchange="ofsScanProduct(this.files[0])" style="display:none">
+        <div style="font-size:46px;margin-bottom:8px">📸</div>
+        <div style="font-size:15px;font-weight:800">Take photo of the product</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:6px">Front of pack — Rish AI will identify it for you</div>
+      </label>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:center">Works on Aldi/Lidl/Rewe products · Translates German → English</div>
+      <div id="ofs-prod-progress" style="display:none;margin-top:10px;font-size:12px;color:var(--text2);text-align:center"></div>
     </div>
 
-    <!-- OCR pane -->
+    <!-- Label OCR pane (kept as fallback) -->
     <div id="ofs-pane-ocr" style="display:none;margin:12px 16px 0">
       <label style="display:block;background:var(--card);border:2px dashed var(--border);border-radius:14px;padding:28px 14px;text-align:center;cursor:pointer">
         <input id="ofs-ocr-file" type="file" accept="image/*" capture="environment" onchange="ofsRunOCR(this.files[0])" style="display:none">
-        <div style="font-size:36px;margin-bottom:8px">📸</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text)">Snap label photo (German text)</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">Will OCR + translate offline (after first download)</div>
+        <div style="font-size:36px;margin-bottom:8px">📝</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">Snap back label only (ingredients text)</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Use when product photo can't ID it — pure German OCR</div>
       </label>
       <div id="ofs-ocr-progress" style="display:none;margin-top:10px;font-size:12px;color:var(--text2);text-align:center"></div>
     </div>
@@ -13534,14 +13532,101 @@ window.addEventListener('online', _ofsUpdateNetworkPill);
 window.addEventListener('offline', _ofsUpdateNetworkPill);
 
 function ofsSwitchTab(t) {
-  document.getElementById('ofs-pane-bc').style.display  = t === 'bc'  ? '' : 'none';
-  document.getElementById('ofs-pane-ocr').style.display = t === 'ocr' ? '' : 'none';
-  const bc  = document.getElementById('ofs-tab-bc');
-  const ocr = document.getElementById('ofs-tab-ocr');
-  [bc, ocr].forEach(b => { b.style.background='var(--card)'; b.style.color='var(--text)'; b.style.borderColor='var(--border)'; });
-  const active = t === 'bc' ? bc : ocr;
+  document.getElementById('ofs-pane-prod').style.display = t === 'prod' ? '' : 'none';
+  document.getElementById('ofs-pane-ocr').style.display  = t === 'ocr'  ? '' : 'none';
+  const prod = document.getElementById('ofs-tab-prod');
+  const ocr  = document.getElementById('ofs-tab-ocr');
+  [prod, ocr].forEach(b => { b.style.background='var(--card)'; b.style.color='var(--text)'; b.style.borderColor='var(--border)'; });
+  const active = t === 'prod' ? prod : ocr;
   active.style.background = '#CC0000'; active.style.color = '#fff'; active.style.borderColor = '#CC0000';
-  if (t !== 'bc') ofsStopBarcode();
+}
+
+// ── Snap product → resize → AI identify ──
+async function ofsScanProduct(file) {
+  if (!file) return;
+  const prog = document.getElementById('ofs-prod-progress');
+  prog.style.display = 'block';
+  prog.textContent = '📸 Compressing photo…';
+  try {
+    const dataUrl = await _ofsResizeImage(file, 1024, 0.78);
+    prog.textContent = '🧠 Rish is identifying the product…';
+    const res = await fetch(_apiBase() + '/scan-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataUrl })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    prog.style.display = 'none';
+    ofsRenderProductAI(data, dataUrl);
+  } catch(e) {
+    prog.textContent = '⚠ ' + (navigator.onLine ? 'Could not identify: ' + e.message : 'Offline — connect to wifi to identify products');
+  }
+}
+
+function _ofsResizeImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else       { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function ofsRenderProductAI(d, imgDataUrl) {
+  const el = document.getElementById('ofs-result');
+  el.style.display = 'block';
+  if (!d || d.error) {
+    el.innerHTML = `<div style="text-align:center"><div style="font-size:34px">⚠</div><div style="font-weight:800;font-size:14px;margin-top:6px">Could not identify</div><div style="font-size:12px;color:var(--text3);margin-top:6px">${d && d.error ? d.error : 'Try a clearer photo of the front of the pack'}</div></div>`;
+    return;
+  }
+  const veg = d.veg_status || 'unclear';
+  const vegBadge = veg === 'vegan' ? '<span style="background:#4CAF50;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🌱 VEGAN</span>'
+                : veg === 'vegetarian' ? '<span style="background:#8BC34A;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🥬 VEG</span>'
+                : veg === 'non-veg' ? '<span style="background:#CC0000;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">🍖 NON-VEG</span>'
+                : '<span style="background:#888;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800">❔ UNCLEAR</span>';
+  const conf = d.confidence ? `<span style="font-size:9px;font-weight:800;background:rgba(184,134,11,0.15);color:#B8860B;border:1px solid rgba(184,134,11,0.3);border-radius:5px;padding:2px 6px;text-transform:uppercase;margin-left:4px">${d.confidence} conf</span>` : '';
+  const all = (d.allergens || []).filter(Boolean);
+  const n = d.nutrition_per_100g || {};
+  const nutRow = (lbl, key, unit) => n[key] != null ? `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px"><span>${lbl}</span><strong>${(+n[key]).toFixed(1)} ${unit}</strong></div>` : '';
+  const id = 'aiprod_' + Date.now();
+  el.innerHTML = `
+    ${imgDataUrl ? `<div style="text-align:center;margin-bottom:10px"><img src="${imgDataUrl}" style="max-height:160px;border-radius:12px;box-shadow:var(--sh)"></div>` : ''}
+    <div style="font-weight:800;font-size:17px;margin-bottom:2px">${d.name || 'Unknown'}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${d.brand || ''} ${d.category ? '· '+d.category : ''} ${vegBadge} ${conf}</div>
+    ${all.length ? `<div style="background:rgba(204,0,0,0.08);border:1px solid rgba(204,0,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#CC0000;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">⚠ Allergens</div><div style="font-size:12px;color:#CC0000;font-weight:700">${all.join(' · ')}</div></div>` : ''}
+    ${d.indian_friendly_notes ? `<div style="background:rgba(255,206,0,0.1);border:1px solid rgba(255,206,0,0.3);border-radius:10px;padding:8px 10px;margin-bottom:10px"><div style="font-size:10px;font-weight:800;color:#B8860B;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">🇮🇳 Note for you</div><div style="font-size:12.5px;color:var(--text);line-height:1.6">${d.indian_friendly_notes}</div></div>` : ''}
+    ${d.ingredients_en ? `<details style="margin-bottom:10px" open><summary style="font-size:12px;font-weight:700;cursor:pointer;color:var(--text2)">📝 Ingredients (English)</summary><div style="margin-top:6px;font-size:11.5px;color:var(--text2);line-height:1.6">${d.ingredients_en}</div></details>` : ''}
+    ${(n.energy_kcal != null || n.fat_g != null) ? `<div style="background:var(--cream);border-radius:10px;padding:10px;margin-top:6px"><div style="font-size:10px;font-weight:800;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">Per 100g</div>
+      ${nutRow('Energy','energy_kcal','kcal')}
+      ${nutRow('Fat','fat_g','g')}
+      ${nutRow('Saturates','saturated_fat_g','g')}
+      ${nutRow('Carbohydrates','carbs_g','g')}
+      ${nutRow('Sugars','sugar_g','g')}
+      ${nutRow('Protein','protein_g','g')}
+      ${nutRow('Salt','salt_g','g')}</div>` : ''}
+    <button onclick='_ofsSaveAIFav(${JSON.stringify(JSON.stringify({ id, name: d.name||"Unknown", brand: d.brand||"", veg, allergens: all, ingredients_en: d.ingredients_en||"", notes: d.indian_friendly_notes||"" }))})' style="margin-top:10px;width:100%;padding:10px;border-radius:10px;border:1px solid #FFCE00;background:rgba(255,206,0,0.12);color:#B8860B;font-size:12px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">⭐ Save to favourites</button>`;
+}
+async function _ofsSaveAIFav(jsonStr) {
+  try {
+    const o = JSON.parse(jsonStr);
+    await ofsFavSave(o.id, o.name, o.brand);
+  } catch(e){}
 }
 
 // Bundled DE→EN food/ingredient/allergen dictionary (works fully offline)
@@ -13679,41 +13764,10 @@ async function ofsRenderFavs() {
   el.innerHTML = all.map(f => `<div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px"><span style="flex:1"><strong>${f.name||'Unknown'}</strong>${f.brand?' · '+f.brand:''}<div style="font-size:10px;color:var(--text3);font-family:monospace">${f.barcode}</div></span><button onclick="ofsLookupCached('${f.barcode}')" style="background:#CC0000;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">Open</button><button onclick="ofsFavRemove('${f.barcode}')" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer">✕</button></div>`).join('');
 }
 
-// ── Barcode scanner via @zxing/browser (CDN, cached by service worker) ──
-let _ofsZxReader = null, _ofsZxControls = null;
-async function _ofsLoadZX() {
-  if (window.ZXingBrowser) return;
-  await new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js';
-    s.onload = resolve; s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-async function ofsStartBarcode() {
-  const msg = document.getElementById('ofs-bc-msg');
-  msg.textContent = 'Loading scanner…';
-  try {
-    await _ofsLoadZX();
-    if (!_ofsZxReader) _ofsZxReader = new ZXingBrowser.BrowserMultiFormatReader();
-    const video = document.getElementById('ofs-video');
-    msg.textContent = 'Point at barcode…';
-    _ofsZxControls = await _ofsZxReader.decodeFromVideoDevice(undefined, video, (result, err) => {
-      if (result) {
-        msg.textContent = '✓ ' + result.getText();
-        ofsStopBarcode();
-        ofsLookup(result.getText());
-      }
-    });
-  } catch(e) {
-    msg.textContent = '⚠ Camera blocked. Allow access in settings.';
-  }
-}
-function ofsStopBarcode() {
-  if (_ofsZxControls) { try { _ofsZxControls.stop(); } catch(e){} _ofsZxControls = null; }
-  const v = document.getElementById('ofs-video');
-  if (v && v.srcObject) { v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
-}
+// (Barcode scanner removed — replaced by AI photo identification, no camera permission needed)
+function _ofsLoadZX() { return Promise.resolve(); }
+function ofsStartBarcode() {}
+function ofsStopBarcode() {}
 
 // ── Product lookup: cache → online OpenFoodFacts → display ──
 async function ofsLookup(barcode) {
