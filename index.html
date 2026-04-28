@@ -4094,6 +4094,10 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         <span class="m-tile-icon">🛍️</span>
         <span class="m-tile-label">Grocery</span>
       </div>
+      <div class="m-tile" onclick="go('transport')">
+        <span class="m-tile-icon">🚆</span>
+        <span class="m-tile-label">Transport</span>
+      </div>
       <div class="m-tile" onclick="go('more')">
         <span class="m-tile-icon">✨</span>
         <span class="m-tile-label">More</span>
@@ -4279,11 +4283,6 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         <span class="qa-icon">🗓️</span>
         <span class="qa-label">1st Week</span>
         <span class="qa-sub">Arrival guide</span>
-      </div>
-      <div class="qa-card" onclick="go('sim')">
-        <span class="qa-icon">📱</span>
-        <span class="qa-label">SIM Cards</span>
-        <span class="qa-sub">Best 3 options</span>
       </div>
       <div class="qa-card" onclick="go('docs')">
         <span class="qa-icon">📂</span>
@@ -4764,6 +4763,95 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
     </div>
   </div>
 
+  <!-- ══════════════ TRANSPORT INFO ══════════════ -->
+  <div class="screen" id="s-transport">
+    <div style="background:linear-gradient(135deg,#141414,#1E1E1E,#B8860B);padding:18px 16px 22px;position:relative;overflow:hidden">
+      <button onclick="go('home')" style="position:absolute;top:14px;left:12px;background:rgba(255,255,255,0.15);border:none;border-radius:18px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;font-family:'Nunito',sans-serif;cursor:pointer">← Home</button>
+      <div style="margin-top:24px;font-family:'Playfair Display',serif;font-size:20px;color:#fff;font-weight:600">🚆 Transport in Marburg</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px">Bus, train & all-in-one ticket guide</div>
+    </div>
+
+    <!-- 7-day countdown card -->
+    <div id="trn-7day-card" style="margin:14px 16px 0;background:linear-gradient(135deg,#FFF8D6,#FFFBE6);border:1.5px solid #FFCE00;border-radius:18px;padding:16px;position:relative;overflow:hidden">
+      <div style="font-size:10px;font-weight:800;color:#B8860B;text-transform:uppercase;letter-spacing:0.1em">⭐ Pehle 7 divas</div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;color:#141414;font-weight:600;margin-top:4px">All-in-One Transport Card</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-top:10px">
+        <strong>Buy this on Day 1 at Frankfurt Hbf or Marburg Hbf:</strong><br>
+        🎫 <strong>Deutschlandticket — €58/month</strong><br>
+        Unlimited bus + tram + regional trains across <em>all of Germany</em>. Marburg local buses ✅ regional RE/RB to Frankfurt ✅ Kassel ✅ everywhere ✅ except ICE/IC fast trains.<br><br>
+        🎫 <strong>Or first 7 days short-term:</strong> RMV "7-Tage-Karte Marburg Stadt" — <strong>€26.80</strong> for unlimited Marburg city buses.
+      </div>
+      <button onclick="trnDismiss()" style="margin-top:12px;width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:12px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">✓ Done — I have my ticket</button>
+      <div style="margin-top:6px;font-size:10px;color:var(--text3);text-align:center">After 7 days this card auto-removes itself</div>
+    </div>
+
+    <!-- Buying tickets — Bus -->
+    <div style="margin:18px 16px 0">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">🚌 Marburg city buses</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--sh);font-size:13px;color:var(--text2);line-height:1.75">
+        <strong style="color:var(--text)">How to buy:</strong>
+        <ol style="margin:6px 0 0 18px;padding:0">
+          <li>📱 <strong>RMV app</strong> (best) — pay with card, scan QR on entry</li>
+          <li>🏧 At <strong>Marburg Hbf</strong> ticket machines (yellow, accept card + cash)</li>
+          <li>👤 From the <strong>bus driver</strong> directly — cash preferred, exact change helps</li>
+        </ol>
+        <div style="margin-top:10px"><strong style="color:var(--text)">Common fares (Marburg "Stadt"):</strong></div>
+        <div style="margin-top:4px">
+          • Single trip — €3.10<br>
+          • Day pass — €6.40<br>
+          • 7-day pass — €26.80<br>
+          • Monthly — see Deutschlandticket above (cheaper)
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:rgba(255,206,0,0.1);border-radius:8px;font-size:12px"><strong>⚠ Validate on board.</strong> No-ticket fine = €60. "Schwarzfahren" = riding without ticket.</div>
+      </div>
+    </div>
+
+    <!-- Buying tickets — Train -->
+    <div style="margin:18px 16px 0">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">🚆 Trains (DB / Deutsche Bahn)</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--sh);font-size:13px;color:var(--text2);line-height:1.75">
+        <strong style="color:var(--text)">How to buy:</strong>
+        <ol style="margin:6px 0 0 18px;padding:0">
+          <li>📱 <strong>DB Navigator app</strong> — book + show ticket from phone, set "destination Frankfurt/Kassel" and pick</li>
+          <li>🌐 <strong>bahn.de</strong> — same prices, easier on laptop</li>
+          <li>🏧 <strong>DB ticket machine</strong> at Marburg Hbf — touch screen, English available</li>
+        </ol>
+        <div style="margin-top:10px"><strong style="color:var(--text)">Tips to save money:</strong></div>
+        <div style="margin-top:4px">
+          • <strong>Sparpreis</strong> — book 3+ days early, ~50% off<br>
+          • <strong>Super Sparpreis</strong> — non-refundable, cheapest<br>
+          • <strong>BahnCard 25</strong> — €19.90/quarter for students, 25% off all trains<br>
+          • <strong>Deutschlandticket €58/month</strong> — unlimited regional trains (RE/RB), no Sparpreis hassle
+        </div>
+        <div style="margin-top:10px"><strong style="color:var(--text)">Marburg → Frankfurt</strong>: ~1h by RE train, €18 single (free with Deutschlandticket).</div>
+        <div style="margin-top:10px;padding:8px 10px;background:rgba(204,0,0,0.08);border-radius:8px;font-size:12px;color:#CC0000"><strong>❌ ICE/IC fast trains:</strong> NOT covered by Deutschlandticket. Need separate ticket.</div>
+      </div>
+    </div>
+
+    <!-- Apps to install -->
+    <div style="margin:18px 16px 0">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">📱 Install these apps Day 1</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;font-size:11px"><div style="font-size:24px">🟦</div><strong>DB Navigator</strong><div style="color:var(--text3);font-size:10px">All trains</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;font-size:11px"><div style="font-size:24px">🟧</div><strong>RMV</strong><div style="color:var(--text3);font-size:10px">Marburg buses</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;font-size:11px"><div style="font-size:24px">🚲</div><strong>Nextbike</strong><div style="color:var(--text3);font-size:10px">Bike rental</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;font-size:11px"><div style="font-size:24px">🗺️</div><strong>Google Maps</strong><div style="color:var(--text3);font-size:10px">Routes</div></div>
+      </div>
+    </div>
+
+    <!-- German phrases for transport -->
+    <div style="margin:18px 16px 80px">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">💬 German phrases</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--sh);font-size:12px;line-height:1.9">
+        <div><strong>"Eine Fahrkarte nach Frankfurt, bitte"</strong> — A ticket to Frankfurt, please</div>
+        <div><strong>"Wann fährt der nächste Zug?"</strong> — When's the next train?</div>
+        <div><strong>"Welches Gleis?"</strong> — Which platform?</div>
+        <div><strong>"Ich brauche das Deutschlandticket"</strong> — I need the Germany-ticket</div>
+        <div><strong>"Hält dieser Bus am Hauptbahnhof?"</strong> — Does this bus stop at the main station?</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══════════════ OFFLINE FOOD SCANNER ══════════════ -->
   <div class="screen" id="s-offline-scan">
     <div style="background:linear-gradient(135deg,#141414,#1E1E1E,#B8860B);padding:18px 16px 22px;position:relative;overflow:hidden">
@@ -4773,12 +4861,6 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
       <div id="ofs-status-pill" style="display:inline-block;margin-top:8px;background:rgba(76,175,80,0.2);border:1px solid #4CAF50;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:800;color:#4CAF50;letter-spacing:0.05em">● ONLINE</div>
     </div>
 
-    <!-- First-launch download banner -->
-    <div id="ofs-setup-banner" style="display:none;margin:14px 16px 0;background:linear-gradient(135deg,#FFF8D6,#FFFBE6);border:1.5px solid #FFCE00;border-radius:14px;padding:14px">
-      <div style="font-size:12px;font-weight:800;color:#B8860B;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">⚙️ Preparing offline mode</div>
-      <div id="ofs-setup-msg" style="font-size:12px;color:var(--text2);margin-bottom:8px">Downloading models for offline use… connect to wifi for first-time setup.</div>
-      <div style="background:rgba(0,0,0,0.08);border-radius:8px;height:6px;overflow:hidden"><div id="ofs-setup-bar" style="background:#B8860B;height:100%;width:0%;transition:width 0.3s"></div></div>
-    </div>
 
     <!-- Tabs -->
     <div style="margin:14px 16px 0;display:flex;gap:8px">
@@ -4821,45 +4903,6 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
     </div>
   </div>
 
-  <!-- ══════════════ SIM CARDS ══════════════ -->
-  <div class="screen" id="s-sim">
-    <div class="section-title" style="padding-top:14px">Best SIM cards for you</div>
-    <div class="info-card">
-      <div class="warn-title">💡 Buy at Frankfurt Airport — Day 1</div>
-      <div class="warn-body" style="margin-top:5px">Get your SIM before the train to Marburg. You'll need Google Maps, WhatsApp, and translation from minute one. Aldi Talk is available at the airport.</div>
-    </div>
-    <div class="sim-card">
-      <div class="sim-name">📱 Aldi Talk</div>
-      <span class="pill pill-g">Best for students</span><span class="pill pill-p">At Frankfurt airport</span>
-      <div class="sim-row">💶 <strong>€12.99/month</strong> — 15GB data + calls + SMS</div>
-      <div class="sim-row">✅ No ID verification headache to activate</div>
-      <div class="sim-row">✅ Top-up at any Aldi store easily</div>
-      <div class="sim-row">✅ Good coverage across Germany including Marburg</div>
-      <div class="sim-row" style="color:var(--gold)">⚠️ Buy starter kit (~€3) + a €15 top-up voucher at airport</div>
-    </div>
-    <div class="sim-card">
-      <div class="sim-name">📱 Congstar</div>
-      <span class="pill pill-a">Best network coverage</span><span class="pill pill-p">Telekom backbone</span>
-      <div class="sim-row">💶 <strong>€10–€20/month</strong> — runs on Telekom (best in Germany)</div>
-      <div class="sim-row">✅ Best signal in Marburg specifically — hilly terrain needs strong network</div>
-      <div class="sim-row">✅ English support available online</div>
-      <div class="sim-row" style="color:var(--gold)">⚠️ Buy at Saturn/MediaMarkt in Frankfurt before train</div>
-    </div>
-    <div class="sim-card">
-      <div class="sim-name">📱 O2 Free S</div>
-      <span class="pill pill-b">Sign up before flying</span>
-      <div class="sim-row">💶 <strong>€10/month</strong> — 10GB, unlimited texts</div>
-      <div class="sim-row">✅ Easy online signup with just passport — no German address needed</div>
-      <div class="sim-row">✅ Great for WhatsApp calls back to India</div>
-      <div class="sim-row" style="color:var(--gold)">⚠️ Best to sign up before you fly — SIM delivered to German address</div>
-    </div>
-    <div class="section-title">Quick comparison</div>
-    <div style="margin:0 16px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--sh)">
-      <div class="cost-row"><span class="cost-label">Aldi Talk</span><span class="cost-val">Best for Day 1 — buy at airport</span></div>
-      <div class="cost-row"><span class="cost-label">Congstar</span><span class="cost-val">Best signal in Marburg long-term</span></div>
-      <div class="cost-row"><span class="cost-label">O2</span><span class="cost-val">Best if ordered before flying</span></div>
-    </div>
-  </div>
 
   <!-- ══════════════ DOCUMENTS ══════════════ -->
   <div class="screen" id="s-docs">
@@ -5651,178 +5694,6 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
     </div>
   </div>
 
-  <!-- ══════════════ 2 DAYS BEFORE FLY ══════════════ -->
-  <div class="screen" id="s-pre-fly">
-    <div style="background:linear-gradient(135deg,#141414,#1E1E1E,#CC0000);padding:22px 18px 28px;position:relative;overflow:hidden">
-      <button onclick="go('home')" style="position:absolute;top:18px;left:16px;background:rgba(255,255,255,0.15);border:none;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;font-family:'Nunito',sans-serif;cursor:pointer">← Home</button>
-      <div style="position:absolute;right:-10px;top:-15px;font-size:90px;opacity:0.07">🧳</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;margin-top:28px">Udnyapurvi</div>
-      <div style="font-family:'Playfair Display',serif;font-size:22px;color:#fff;font-weight:600">2 Days Before ✈️</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px">Mumbai → Frankfurt · 24 Apr 2026 · 00:55 IST</div>
-    </div>
-
-    <!-- ✈️ LIVE FLIGHT COUNTDOWN -->
-    <div style="margin:14px 16px 0;background:linear-gradient(135deg,#141414 0%,#2A2A2A 50%,#B8860B 100%);border-radius:20px;padding:18px 20px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:-18px;right:-18px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.05)"></div>
-      <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">✈️ TIME TO TAKEOFF</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-bottom:14px">Mumbai Chhatrapati Shivaji Airport → Frankfurt</div>
-      <div id="flight-timer-display" style="display:flex;gap:8px;justify-content:center">
-        <div style="text-align:center;background:rgba(255,255,255,0.1);border-radius:14px;padding:12px 0;flex:1">
-          <div id="fcd-days" style="font-family:'Playfair Display',serif;font-size:30px;font-weight:600;color:#FFCE00;line-height:1">--</div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">Days</div>
-        </div>
-        <div style="text-align:center;background:rgba(255,255,255,0.1);border-radius:14px;padding:12px 0;flex:1">
-          <div id="fcd-hours" style="font-family:'Playfair Display',serif;font-size:30px;font-weight:600;color:#FFCE00;line-height:1">--</div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">Hours</div>
-        </div>
-        <div style="text-align:center;background:rgba(255,255,255,0.1);border-radius:14px;padding:12px 0;flex:1">
-          <div id="fcd-mins" style="font-family:'Playfair Display',serif;font-size:30px;font-weight:600;color:#FFCE00;line-height:1">--</div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">Mins</div>
-        </div>
-        <div style="text-align:center;background:rgba(255,255,255,0.1);border-radius:14px;padding:12px 0;flex:1">
-          <div id="fcd-secs" style="font-family:'Playfair Display',serif;font-size:30px;font-weight:600;color:rgba(255,206,0,0.55);line-height:1">--</div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">Secs</div>
-        </div>
-      </div>
-      <div id="fcd-msg" style="margin-top:12px;font-size:12px;color:rgba(255,255,255,0.75);text-align:center;font-family:'Playfair Display',serif;font-style:italic;line-height:1.5"></div>
-    </div>
-
-    <!-- 🌐 WEB CHECK-IN -->
-    <div class="section-title">🌐 Web Check-In</div>
-    <div style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--sh)">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
-        <div style="font-size:26px;flex-shrink:0">📱</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px">Check-in opens: April 23, 00:55 IST</div>
-          <div style="font-size:11px;color:var(--text3);line-height:1.65">Airlines open web check-in 24hrs before departure. Do it as soon as it opens — window/aisle seats go fast! Print or save boarding pass on phone.</div>
-        </div>
-      </div>
-      <div id="checkin-open-msg" style="background:var(--gold-l);border:1px solid rgba(255,206,0,0.3);border-radius:10px;padding:9px 12px;font-size:11.5px;color:#7A5800;font-weight:600;margin-bottom:10px;text-align:center"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div id="ci-step1" onclick="toggleCiStep('ci-step1')" style="background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;cursor:pointer;transition:all 0.15s">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em">Step 1</div>
-          <div style="font-size:11.5px;font-weight:600;color:var(--text);margin-top:2px">Open airline website / app</div>
-        </div>
-        <div id="ci-step2" onclick="toggleCiStep('ci-step2')" style="background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;cursor:pointer;transition:all 0.15s">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em">Step 2</div>
-          <div style="font-size:11.5px;font-weight:600;color:var(--text);margin-top:2px">Enter PNR + last name</div>
-        </div>
-        <div id="ci-step3" onclick="toggleCiStep('ci-step3')" style="background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;cursor:pointer;transition:all 0.15s">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em">Step 3</div>
-          <div style="font-size:11.5px;font-weight:600;color:var(--text);margin-top:2px">Choose your seat 🪑</div>
-        </div>
-        <div id="ci-step4" onclick="toggleCiStep('ci-step4')" style="background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;cursor:pointer;transition:all 0.15s">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em">Step 4</div>
-          <div style="font-size:11.5px;font-weight:600;color:var(--text);margin-top:2px">Download boarding pass 📄</div>
-        </div>
-      </div>
-      <button onclick="markWebCheckin()" id="webcheckin-btn" style="width:100%;padding:12px;border-radius:12px;border:none;font-size:13px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;background:#141414;color:#FFCE00;transition:opacity 0.12s">✅ Mark Web Check-In as Done!</button>
-      <div id="webcheckin-done" style="display:none;margin-top:8px;background:#E6F9ED;border-radius:10px;padding:9px 12px;font-size:12px;color:#0B7960;font-weight:700;text-align:center">✅ Web check-in done! Save boarding pass on phone + take a printout ❤️</div>
-    </div>
-
-    <!-- 🧳 BAGGAGE WEIGHT TRACKER -->
-    <div class="section-title">🧳 Baggage Weight Tracker</div>
-    <div style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--sh)">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6">Weigh your bags at home! Airport excess baggage is EXPENSIVE 💸 Enter your bag weight below.</div>
-      <!-- Cabin Bag -->
-      <div style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:12px;font-weight:700;color:var(--text)">🎒 Cabin Bag</div>
-          <div style="font-size:10.5px;color:var(--text3);font-weight:600">Limit: 7 kg</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-          <input id="cabin-weight" type="number" step="0.1" min="0" max="15" placeholder="kg" style="width:80px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;font-weight:700;font-family:'Nunito',sans-serif;background:var(--cream);color:var(--text);outline:none;text-align:center" oninput="updateBagWeight()">
-          <div style="font-size:12px;color:var(--text3);font-weight:600">kg</div>
-          <div id="cabin-status" style="flex:1;font-size:12px;font-weight:700;text-align:right"></div>
-        </div>
-        <div style="background:var(--cream2);border-radius:6px;height:8px;overflow:hidden">
-          <div id="cabin-bar" style="height:100%;border-radius:6px;background:#0B7960;width:0%;transition:width 0.4s,background 0.3s"></div>
-        </div>
-      </div>
-      <!-- Checked Bag -->
-      <div style="margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:12px;font-weight:700;color:var(--text)">🧳 Checked Bag</div>
-          <div style="font-size:10.5px;color:var(--text3);font-weight:600">Limit: 23 kg</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-          <input id="checked-weight" type="number" step="0.1" min="0" max="35" placeholder="kg" style="width:80px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;font-weight:700;font-family:'Nunito',sans-serif;background:var(--cream);color:var(--text);outline:none;text-align:center" oninput="updateBagWeight()">
-          <div style="font-size:12px;color:var(--text3);font-weight:600">kg</div>
-          <div id="checked-status" style="flex:1;font-size:12px;font-weight:700;text-align:right"></div>
-        </div>
-        <div style="background:var(--cream2);border-radius:6px;height:8px;overflow:hidden">
-          <div id="checked-bar" style="height:100%;border-radius:6px;background:#0B7960;width:0%;transition:width 0.4s,background 0.3s"></div>
-        </div>
-      </div>
-      <div id="bag-rish-msg" style="display:none;border-radius:12px;padding:11px 13px;font-size:12px;font-weight:600;line-height:1.6"></div>
-      <div style="margin-top:10px;padding:9px 12px;background:var(--cream);border-radius:10px;font-size:11px;color:var(--text3);line-height:1.65">💡 <strong>International flight typical limits:</strong> Cabin 7kg + Checked 23kg (1 bag). Check your e-ticket for exact allowance. Extra kg = ~₹500–₹1500 per kg!</div>
-    </div>
-
-    <!-- ⏰ AIRPORT DAY PLAN -->
-    <div class="section-title">⏰ Airport Day Plan — April 23</div>
-    <div style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--sh)">
-      <div style="display:flex;flex-direction:column;gap:0">
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:0.5px solid var(--border)">
-          <div style="font-size:11px;font-weight:800;color:#CC0000;min-width:52px;padding-top:2px">~8:30 PM</div>
-          <div><div style="font-size:12px;font-weight:700;color:var(--text)">Leave for Mumbai airport 🚗</div><div style="font-size:11px;color:var(--text3);margin-top:1px">International = 3 hrs before. Flight 00:55 → Leave by 9:30pm latest. Earlier = safer!</div></div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:0.5px solid var(--border)">
-          <div style="font-size:11px;font-weight:800;color:#CC0000;min-width:52px;padding-top:2px">~9:30 PM</div>
-          <div><div style="font-size:12px;font-weight:700;color:var(--text)">Airport — Departures entrance 🏢</div><div style="font-size:11px;color:var(--text3);margin-top:1px">Terminal 2 CSIA. Carry boarding pass (phone or print). Passport ready at hand.</div></div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:0.5px solid var(--border)">
-          <div style="font-size:11px;font-weight:800;color:#CC0000;min-width:52px;padding-top:2px">~9:45 PM</div>
-          <div><div style="font-size:12px;font-weight:700;color:var(--text)">Check-in counter / bag drop 🧳</div><div style="font-size:11px;color:var(--text3);margin-top:1px">Even with web check-in, you'll drop your checked bag here. Have passport + ticket.</div></div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:0.5px solid var(--border)">
-          <div style="font-size:11px;font-weight:800;color:#CC0000;min-width:52px;padding-top:2px">~10:15 PM</div>
-          <div><div style="font-size:12px;font-weight:700;color:var(--text)">Security check + Immigration 🛂</div><div style="font-size:11px;color:var(--text3);margin-top:1px">Keep liquids in 100ml bottles in a clear zip bag. Laptop out of bag for security.</div></div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:9px 0">
-          <div style="font-size:11px;font-weight:800;color:#0B7960;min-width:52px;padding-top:2px">~11:00 PM</div>
-          <div><div style="font-size:12px;font-weight:700;color:var(--text)">Airside — Gate area ✅</div><div style="font-size:11px;color:var(--text3);margin-top:1px">Food, duty free, relax. Boarding usually starts 45 min before. Check gate on screens!</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ✈️ WHAT TO CARRY IN CABIN BAG -->
-    <div class="section-title">🎒 Cabin Bag Essentials</div>
-    <div style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--sh)">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">🛂 Passport + visa</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">📄 Boarding pass</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">📋 MPI offer letter</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">💊 Medicines (1 week)</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">🎧 Earphones</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">🔋 Powerbank (≤100Wh)</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">💧 Empty water bottle</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">🧴 Lip balm + moisturizer</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">🍫 Snacks (mathri, chikki)</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">🧥 Light jacket / dupatta</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">💻 Laptop + charger</div>
-        <div style="background:var(--cream);border-radius:10px;padding:9px 10px;font-size:11.5px;color:var(--text)">💳 Card (intl enabled)</div>
-      </div>
-      <div style="margin-top:10px;background:#FFF0F0;border-radius:10px;padding:9px 12px;font-size:11px;color:#7A1A1A;font-weight:600;line-height:1.6">🚫 <strong>NOT allowed in cabin:</strong> Liquids over 100ml · Scissors · Lighters · Powerbank over 100Wh</div>
-    </div>
-
-    <!-- 📦 PACK CHECKLIST -->
-    <div class="section-title">📦 Pack Karayachya Goshti</div>
-    <div style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--sh)">
-      <div id="prefly-pack-list" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
-
-    <div class="section-title">📋 Karayachya Goshti</div>
-    <div style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--sh)">
-      <div id="prefly-todo-list" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
-
-    <div style="margin:0 16px 14px;background:linear-gradient(135deg,#FFFBE6,#FFF5D0);border:1.5px solid #FFCE00;border-radius:16px;padding:16px">
-      <div style="font-size:13px;font-weight:700;color:#141414;margin-bottom:6px">❤️ Rish mhaNto</div>
-      <div style="font-family:'Playfair Display',serif;font-size:13.5px;color:#7A5800;line-height:1.85;font-style:italic">Mumbai airport वर जाताना एक deep breath घे.<br>तू ready आहेस — IISER Pune ते Max Planck,<br>हे तू <strong style="font-style:normal;color:#CC0000">earn</strong> केलंस Bebu.<br><br>मी always इथे आहे. मला call कर केव्हाही. ❤️</div>
-      <div style="margin-top:10px;font-family:'Playfair Display',serif;font-size:12px;color:#CC0000;font-style:italic;text-align:right">— तुझा Rish 🧡</div>
-    </div>
-  </div>
-
   <!-- ══════════════ FIRST WEEK GUIDE ══════════════ -->
   <div class="screen" id="s-first-week">
     <div style="background:linear-gradient(135deg,#141414,#1E1E1E,#B8860B);padding:22px 18px 28px;position:relative;overflow:hidden">
@@ -6522,19 +6393,6 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
 
 </div><!-- end .phone -->
 
-<!-- ═══ FLIGHT COUNTDOWN POPUP ═══ -->
-<div id="flight-popup" onclick="dismissFlightPopup()">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div style="font-size:28px;animation:spin 3s linear infinite">✈️</div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:11px;font-weight:800;color:#FFCE00;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px">FLIGHT ALERT 🚨</div>
-      <div style="font-size:13px;color:#fff;font-weight:700;line-height:1.3" id="flight-popup-msg">Flight in 3 days!</div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:2px">Tap → open 2-days-to-go checklist</div>
-    </div>
-    <div onclick="event.stopPropagation();go('pre-fly')" style="background:rgba(255,206,0,0.2);border:1px solid rgba(255,206,0,0.4);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:800;color:#FFCE00;cursor:pointer;white-space:nowrap">Open ›</div>
-    <div onclick="event.stopPropagation();document.getElementById('flight-popup').classList.remove('show')" style="font-size:20px;color:rgba(255,255,255,0.4);cursor:pointer;padding:4px;line-height:1">×</div>
-  </div>
-</div>
 
 <!-- ═══ FIRST WEEK POPUP ═══ -->
 <div id="firstweek-popup" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:24px">
@@ -12122,7 +11980,6 @@ function checkFlightPopup() {
 function dismissFlightPopup() {
   const popup = document.getElementById('flight-popup');
   if (popup) popup.classList.remove('show');
-  go('pre-fly');
 }
 
 // ── SYNC OUTFIT CHECKLIST — sync outfit state from localStorage to home-screen items ──
@@ -13483,6 +13340,42 @@ function showOpenGreeting() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// 🚆 TRANSPORT 7-day card auto-removal
+// ═══════════════════════════════════════════════════════════
+const ARRIVAL_KEY = 'rish_arrival_date';
+function trnInit() {
+  if (!localStorage.getItem(ARRIVAL_KEY)) localStorage.setItem(ARRIVAL_KEY, '2026-04-25');
+  trnUpdate7DayCard();
+}
+function trnUpdate7DayCard() {
+  const card = document.getElementById('trn-7day-card');
+  if (!card) return;
+  const dismissed = localStorage.getItem('rish_trn_7day_dismissed') === '1';
+  const arr = new Date(localStorage.getItem(ARRIVAL_KEY) || '2026-04-25');
+  const days = Math.floor((Date.now() - arr.getTime()) / 86400000);
+  if (dismissed || days >= 7) {
+    card.style.display = 'none';
+  } else {
+    card.style.display = 'block';
+  }
+}
+function trnDismiss() {
+  localStorage.setItem('rish_trn_7day_dismissed', '1');
+  trnUpdate7DayCard();
+}
+// re-check on screen entry
+(function _wrapGoForTransport(){
+  const orig = window.go;
+  if (typeof orig !== 'function') return;
+  window.go = function(name) {
+    const out = orig.apply(this, arguments);
+    if (name === 'transport') setTimeout(trnUpdate7DayCard, 30);
+    return out;
+  };
+})();
+window.addEventListener('load', () => setTimeout(trnInit, 500));
+
+// ═══════════════════════════════════════════════════════════
 // 📊 APP USAGE TRACKING
 // ═══════════════════════════════════════════════════════════
 const USAGE_KEY = 'rish_usage';
@@ -13584,7 +13477,7 @@ function renderUsage() {
     if (!entries.length) { sc.innerHTML = '<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">No data yet</div>'; }
     else {
       const max = entries[0][1];
-      const ICONS = { home:'🏠', 'rish-ai':'❤️', todo:'✅', shopping:'🛒', 'next-visit':'✈️', 'offline-scan':'🛍️', missing:'💌', sim:'📱', currency:'💶', usage:'📊', 'first-week':'🗓️', 'pre-fly':'🧳', 'practice-german':'🇩🇪', translate:'🔤' };
+      const ICONS = { home:'🏠', 'rish-ai':'❤️', todo:'✅', shopping:'🛒', 'next-visit':'✈️', 'offline-scan':'🛍️', missing:'💌', currency:'💶', usage:'📊', 'first-week':'🗓️', 'transport':'🚆', 'practice-german':'🇩🇪', translate:'🔤' };
       sc.innerHTML = entries.map(([s, ms]) => `
         <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
           <span style="font-size:18px;width:24px;text-align:center">${ICONS[s]||'📄'}</span>
@@ -13941,38 +13834,14 @@ async function ofsRunOCR(file) {
   }
 }
 
-// First-launch model preload (when online). Best-effort: any single step failing is OK,
-// the libs will lazy-load on first real use anyway.
+// Silent background preload — no UI, no errors shown to user. Libs cached by service worker.
 async function ofsFirstLaunchPreload() {
-  if (localStorage.getItem('ofs_models_ready_v1')) return;
   if (!navigator.onLine) return;
-  const banner = document.getElementById('ofs-setup-banner');
-  const msg = document.getElementById('ofs-setup-msg');
-  const bar = document.getElementById('ofs-setup-bar');
-  if (!banner) return;
-  banner.style.display = 'block';
-  let bcOk = false, tessOk = false;
-
-  msg.textContent = 'Downloading barcode scanner…'; bar.style.width = '15%';
-  try { await _ofsLoadZX(); bcOk = true; } catch(e){}
-
-  msg.textContent = 'Downloading OCR engine…'; bar.style.width = '55%';
-  try { await _ofsLoadTess(); tessOk = true; } catch(e){}
-
-  // German model will be auto-downloaded by Tesseract on first OCR use; CDN allows that.
-  // We don't pre-fetch here because tessdata host doesn't always allow CORS.
-  bar.style.width = '100%';
-
-  if (bcOk && tessOk) {
-    msg.textContent = '✅ Scanner ready. Label OCR will fetch the German model the first time you scan a label.';
-    localStorage.setItem('ofs_models_ready_v1', '1');
-    setTimeout(() => banner.style.display = 'none', 2500);
-  } else if (bcOk) {
-    msg.textContent = '✓ Barcode scanner ready. Label OCR will load on first use.';
-    setTimeout(() => banner.style.display = 'none', 2500);
-  } else {
-    msg.textContent = '⚠ Setup paused — connect to wifi and reopen this screen to retry.';
-  }
+  if (window._ofsPreloadStarted) return;
+  window._ofsPreloadStarted = true;
+  // Fire and forget — failures are silent, real usage will lazy-load anyway
+  _ofsLoadZX().catch(()=>{});
+  _ofsLoadTess().catch(()=>{});
 }
 
 // Wire up: when entering scanner screen, init
@@ -13997,6 +13866,8 @@ window.addEventListener('load', () => {
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
+  // Silently prefetch scanner libs in background so first scan is instant
+  setTimeout(() => { try { ofsFirstLaunchPreload(); } catch(e){} }, 4000);
   setTimeout(showOpenGreeting, 1600);
   // Notifications — stagger after greeting so they don't overlap
   setTimeout(maybeShowRishNotif, 6200);
