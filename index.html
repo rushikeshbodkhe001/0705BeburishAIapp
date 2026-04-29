@@ -13686,7 +13686,7 @@ function ofsSwitchTab(t) {
   active.style.background = '#CC0000'; active.style.color = '#fff'; active.style.borderColor = '#CC0000';
 }
 
-// ── Snap product → resize → local OCR FIRST (offline-first) → optionally AI enhance ──
+// ── Snap product → AI when online (fast, accurate) | local OCR only when offline ──
 async function ofsScanProduct(file) {
   if (!file) return;
   const prog = document.getElementById('ofs-prod-progress');
@@ -13694,7 +13694,6 @@ async function ofsScanProduct(file) {
   prog.textContent = '📸 Compressing photo…';
   let dataUrl;
   try {
-    // Aggressive resize so payload always fits — try 768/0.62, fall back smaller if huge
     dataUrl = await _ofsResizeImage(file, 768, 0.62);
     if (dataUrl.length > 2_500_000) dataUrl = await _ofsResizeImage(file, 640, 0.55);
     if (dataUrl.length > 2_500_000) dataUrl = await _ofsResizeImage(file, 512, 0.5);
@@ -13710,48 +13709,70 @@ async function ofsScanProduct(file) {
     return;
   }
 
-  // 2. ALWAYS run local OCR first — works fully offline
-  prog.textContent = '🔍 Reading label (offline)…';
+  // 2. ONLINE → AI vision only (clean results, no OCR garbage)
+  if (navigator.onLine) {
+    prog.textContent = '🧠 Rish is identifying the product…';
+    try {
+      const res = await fetch(_apiBase() + '/scan-product', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: dataUrl })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const ai = await res.json();
+      if (ai && !ai.error && ai.name) {
+        ofsRenderProductAI(ai, dataUrl);
+        await ofsCachePut(hash, ai);
+        prog.style.display = 'none';
+        return;
+      }
+      throw new Error(ai && ai.error || 'no result');
+    } catch(e) {
+      prog.textContent = '⚠ AI unavailable (' + e.message + ') — trying offline mode…';
+      // fall through to local OCR
+    }
+  }
+
+  // 3. OFFLINE → local OCR + dictionary
+  prog.textContent = '🔍 Reading label offline…';
   let local = null;
   try {
     await _ofsLoadTess();
     const { data: { text } } = await Tesseract.recognize(dataUrl, 'deu', {
-      logger: m => { if (m.status === 'recognizing text' && m.progress != null) prog.textContent = `Reading label · ${Math.round(m.progress*100)}%`; }
+      logger: m => { if (m.status === 'recognizing text' && m.progress != null) prog.textContent = `Reading · ${Math.round(m.progress*100)}%`; }
     });
-    local = _ofsLocalIdentify(text);
-  } catch(e) { /* OCR may fail if model not yet downloaded offline */ }
+    if (_ofsTextLooksReal(text)) {
+      local = _ofsLocalIdentify(text);
+    }
+  } catch(e) {}
 
-  // 3. Render local result immediately (offline-friendly)
-  if (local) {
+  if (local && local.veg_status !== 'unclear') {
     ofsRenderProductAI(local, dataUrl);
     await ofsCachePut(hash, local);
-    prog.textContent = navigator.onLine ? '🧠 Enhancing with AI…' : '✓ Offline result · connect to wifi for sharper ID';
-    if (!navigator.onLine) { setTimeout(() => prog.style.display='none', 2200); return; }
-  } else if (!navigator.onLine) {
-    prog.textContent = '⚠ Offline + label not readable. Try the 📝 Label Only tab.';
-    return;
+    prog.textContent = '✓ Offline result · WiFi madhe sharper ID milel';
+    setTimeout(() => prog.style.display = 'none', 2500);
   } else {
-    prog.textContent = '🧠 Rish is identifying…';
-  }
-
-  // 4. If online, enhance with AI (refines name/allergens/notes)
-  try {
-    const res = await fetch(_apiBase() + '/scan-product', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: dataUrl })
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const ai = await res.json();
-    if (ai && !ai.error) {
-      const merged = _ofsMergeResults(local, ai);
-      ofsRenderProductAI(merged, dataUrl);
-      await ofsCachePut(hash, merged);
-    }
+    // Garbage OCR or unknown — show clear "try again" message instead of nonsense
+    ofsRenderProductAI({
+      name: 'Could not identify',
+      brand: '',
+      veg_status: 'unclear',
+      description: '⚠ Photo not clear enough to read offline.\nTry again in better light, or check on WiFi for clearer ID.',
+      confidence: 'low'
+    }, dataUrl);
     prog.style.display = 'none';
-  } catch(e) {
-    if (!local) prog.textContent = '⚠ Could not identify offline: ' + e.message;
-    else prog.style.display = 'none';
   }
+}
+
+// Returns true if OCR text contains real words (not random char garbage)
+function _ofsTextLooksReal(text) {
+  if (!text || text.length < 20) return false;
+  // Count sequences of 4+ letters (real words)
+  const words = text.match(/[A-Za-zÄÖÜäöüß]{4,}/g) || [];
+  if (words.length < 3) return false;
+  // Check if at least one known German keyword appears
+  const lower = text.toLowerCase();
+  const knownTerms = ['zutat','nährwert','brennwert','fett','eiweiß','enthält','milch','zucker','salz','wasser','mehl','öl','gluten','laktose','fleisch','vegetarisch','vegan','sahne','rahm','quark','käse','joghurt','butter','schokolade','brot'];
+  return knownTerms.some(t => lower.includes(t));
 }
 
 // Local-only product identifier from OCR text using bundled dictionary
@@ -13771,8 +13792,11 @@ function _ofsLocalIdentify(text) {
   // Build a 2-line description: line 1 = what it is, line 2 = practical note
   let line1 = '', line2 = '';
   // What it is — match common product types
-  if (/quark/i.test(lower))                   line1 = 'Soft fresh dairy cheese (Quark).';
-  else if (/joghurt|yogurt/i.test(lower))     line1 = 'Yogurt — dairy product.';
+  if (/sauerrahm|saure sahne/i.test(lower))   line1 = 'Sour cream (Sauerrahm).';
+  else if (/schmand/i.test(lower))             line1 = 'Schmand — soured cream, ~24% fat.';
+  else if (/crème fraîche|creme fraiche/i.test(lower)) line1 = 'Crème fraîche — thick soured cream.';
+  else if (/quark/i.test(lower))               line1 = 'Soft fresh dairy cheese (Quark).';
+  else if (/joghurt|yogurt/i.test(lower))      line1 = 'Yogurt — dairy product.';
   else if (/haferflocken/i.test(lower))       line1 = 'Rolled oats — breakfast cereal.';
   else if (/müsli|musli/i.test(lower))        line1 = 'Muesli — oat cereal mix.';
   else if (/brot|bread/i.test(lower))         line1 = 'Bread.';
@@ -13794,7 +13818,9 @@ function _ofsLocalIdentify(text) {
   if (veg === 'non-veg') {
     const which = OFS_NONVEG_KEYS.filter(k => new RegExp('\\b' + k + '\\b').test(lower)).slice(0, 2);
     line2 = '🚫 Skip — contains ' + which.map(k => OFS_DICT[k] || k).join(', ') + '.';
-  } else if (/quark/i.test(lower))            line2 = 'Like Indian hung curd — great for shrikhand or raita.';
+  } else if (/sauerrahm|saure sahne/i.test(lower)) line2 = 'Like Indian malai/cream. Use for raita, dips. Veg-safe.';
+  else if (/schmand|crème fraîche|creme fraiche/i.test(lower)) line2 = 'Use for curries or dips — substitute for malai. Veg-safe.';
+  else if (/quark/i.test(lower))              line2 = 'Like Indian hung curd — great for shrikhand or raita.';
   else if (/haferflocken|hafer/i.test(lower)) line2 = 'Hafer = oats, like Indian dalia. Veg-safe.';
   else if (/buchweizen/i.test(lower))         line2 = 'Buchweizen = kuttu (vrat-safe buckwheat).';
   else if (/linsen/i.test(lower))             line2 = 'Linsen = lentils (dal). Veg-safe.';
