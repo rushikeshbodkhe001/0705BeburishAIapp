@@ -1,5 +1,5 @@
 // Service Worker — caches scanner libs offline; HTML is always fresh.
-const CACHE = 'rish-ofs-v10-raanu-wide-window';
+const CACHE = 'rish-ofs-v11-flowers';
 const RUNTIME_HOSTS = [
   'cdn.jsdelivr.net',
   'tessdata.projectnaptha.com',

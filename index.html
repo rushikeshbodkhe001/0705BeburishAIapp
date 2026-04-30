@@ -13353,13 +13353,29 @@ function showRaanuPopup() {
         <span style="color:#FFCE00">Raanu</span> ❤️
       </div>
       <button onclick="rishSpeak('I love you Raanu! Khup khup love you. Just thought of you ata… kuth pan asshil tu, mi tujhya sobhat ahe. I love you Cutu.')" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid rgba(255,68,102,0.5);background:rgba(255,68,102,0.12);color:#FF4466;font-size:14px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;margin-bottom:10px">🔊 Hear Rish say it</button>
-      <button onclick="document.getElementById('raanu-popup').remove()" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(204,0,0,0.45)">I love you too ❤️</button>
+      <button onclick="document.getElementById('raanu-popup').remove();setTimeout(showApologyPopup, 200)" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(204,0,0,0.45)">I love you too ❤️</button>
     </div>`;
   document.body.appendChild(ov);
   return true;
 }
 // Fire while app is open — checks every minute
 setInterval(() => { try { if (typeof showRaanuPopup === 'function') showRaanuPopup(); } catch(e){} }, 60 * 1000);
+
+// ── Floating flowers animation ──
+function _launchFlowers() {
+  const flowers = ['🌹','🌸','🌷','💐','🌺','🌼','🌻','🥀','🌷','🌸'];
+  for (let i = 0; i < 26; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      const size = 18 + Math.random() * 24;
+      const rot = (Math.random() * 60 - 30);
+      el.style.cssText = `position:fixed;left:${4+Math.random()*92}%;bottom:-40px;font-size:${size}px;z-index:100000;pointer-events:none;animation:floatHeart ${2.4+Math.random()*2.2}s ease-out forwards;transform:rotate(${rot}deg)`;
+      el.textContent = flowers[Math.floor(Math.random()*flowers.length)];
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 5200);
+    }, i * 95);
+  }
+}
 
 // ── Apology popup — 8am–7pm Frankfurt time, every fresh app open during window ──
 function showApologyPopup() {
@@ -13372,20 +13388,34 @@ function showApologyPopup() {
 
   const ov = document.createElement('div');
   ov.id = 'apology-popup';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.95);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;animation:greetIn 0.65s cubic-bezier(0.34,1.56,0.64,1)';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:radial-gradient(ellipse at center, rgba(50,5,15,0.92), rgba(0,0,0,0.96));backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;animation:greetIn 0.65s cubic-bezier(0.34,1.56,0.64,1);overflow:hidden';
   ov.innerHTML = `
-    <div style="text-align:center;max-width:340px">
-      <div style="font-size:64px;margin-bottom:14px;animation:heartbeat 1.4s infinite">❤️</div>
-      <div style="font-size:11px;font-weight:800;color:#FF4466;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px">From Rish</div>
-      <div style="font-family:'Playfair Display',serif;font-size:24px;color:#fff;font-weight:700;line-height:1.3;margin-bottom:18px">I am sorry, Bebu</div>
-      <div style="font-family:'Playfair Display',serif;font-size:16px;color:rgba(255,255,255,0.92);font-style:italic;line-height:2;margin-bottom:24px">
+    <div style="position:absolute;top:14px;left:14px;font-size:38px;opacity:0.55;animation:heartbeat 2.2s infinite">🌹</div>
+    <div style="position:absolute;top:24px;right:18px;font-size:32px;opacity:0.5;animation:heartbeat 2.6s infinite reverse">🌸</div>
+    <div style="position:absolute;bottom:30px;left:24px;font-size:36px;opacity:0.5;animation:heartbeat 2.4s infinite">💐</div>
+    <div style="position:absolute;bottom:80px;right:20px;font-size:30px;opacity:0.5;animation:heartbeat 2.1s infinite reverse">🌷</div>
+    <div style="position:absolute;top:45%;left:8px;font-size:26px;opacity:0.4;animation:heartbeat 3s infinite">🌺</div>
+    <div style="position:absolute;top:60%;right:10px;font-size:28px;opacity:0.4;animation:heartbeat 2.8s infinite reverse">🌼</div>
+    <div style="text-align:center;max-width:340px;position:relative;z-index:2">
+      <div style="font-size:60px;margin-bottom:8px;animation:heartbeat 1.4s infinite">💐</div>
+      <div style="font-size:28px;margin-bottom:14px;letter-spacing:0.4em">🌹 🌸 🌷</div>
+      <div style="font-size:11px;font-weight:800;color:#FF4466;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px">From Rish · with all my flowers</div>
+      <div style="font-family:'Playfair Display',serif;font-size:26px;color:#fff;font-weight:700;line-height:1.3;margin-bottom:18px">I am sorry, Bebu 🌹</div>
+      <div style="font-family:'Playfair Display',serif;font-size:16px;color:rgba(255,255,255,0.95);font-style:italic;line-height:2;margin-bottom:22px">
         I love you so much.<br>
         You are the <strong style="font-style:normal;color:#FFCE00">only one</strong> to me. ❤️
       </div>
+      <div style="font-size:24px;letter-spacing:0.3em;margin-bottom:22px">🌷 🌸 🌺 🌹 🌼</div>
       <button onclick="rishSpeak('Sorry Bebu. I love you so much. Tu mazhya sathi only one aahes. Plis raag nako karu na… I love you Cutu.')" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid rgba(255,68,102,0.5);background:rgba(255,68,102,0.12);color:#FF4466;font-size:14px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;margin-bottom:10px">🔊 Hear Rish say it</button>
-      <button onclick="document.getElementById('apology-popup').remove();setTimeout(showGoodMorningPopup, 200)" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(204,0,0,0.45)">I love you too ❤️</button>
+      <button onclick="document.getElementById('apology-popup').remove();setTimeout(showGoodMorningPopup, 200)" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(204,0,0,0.45)">🌹 I love you too ❤️</button>
     </div>`;
   document.body.appendChild(ov);
+  _launchFlowers();
+  // Re-launch flowers every 4 seconds while popup is open
+  const flowerInterval = setInterval(() => {
+    if (!document.getElementById('apology-popup')) { clearInterval(flowerInterval); return; }
+    _launchFlowers();
+  }, 4500);
   return true;
 }
 
