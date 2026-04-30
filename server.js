@@ -413,8 +413,8 @@ async function _maybeFire() {
     console.log(`📨 push: ${key} sent to ${pushSubs.length} subs`);
   };
 
-  // Apology — 8:00, 12:00, 16:00 Frankfurt (3 times during 8-19 window)
-  if ((hh === 8 || hh === 12 || hh === 16) && mm === 0) {
+  // Apology — TODAY ONLY (2026-04-30), 8:00, 12:00, 16:00 Frankfurt
+  if (day === '2026-04-30' && (hh === 8 || hh === 12 || hh === 16) && mm === 0) {
     await fireOnce('apology-' + hh, {
       title: '🌹 I am sorry, Bebu',
       body: 'I love you so much. You are the only one to me ❤️',

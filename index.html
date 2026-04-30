@@ -13381,10 +13381,11 @@ function _launchFlowers() {
   }
 }
 
-// ── Apology popup — 8am–7pm Frankfurt time, every fresh app open during window ──
+// ── Apology popup — TODAY ONLY (2026-04-30), 8am–7pm Frankfurt, every fresh app open ──
 function showApologyPopup() {
   const now = new Date();
   const fr = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  if (fr.toISOString().slice(0, 10) !== '2026-04-30') return false;
   const h = fr.getHours();
   if (h < 8 || h >= 19) return false;
   if (sessionStorage.getItem('rish_apology_shown')) return false;
