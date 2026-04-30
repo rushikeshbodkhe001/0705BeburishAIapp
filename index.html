@@ -13337,9 +13337,8 @@ function showRaanuPopup() {
   const fr = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
   const totalMin = fr.getHours() * 60 + fr.getMinutes();
   if (totalMin < (14*60+10)) return false;  // before 2:10 PM
-  const today = fr.toISOString().slice(0, 10);
-  if (localStorage.getItem('rish_raanu_210_' + today)) return false;
-  localStorage.setItem('rish_raanu_210_' + today, '1');
+  if (sessionStorage.getItem('rish_raanu_shown')) return false;
+  sessionStorage.setItem('rish_raanu_shown', '1');
 
   const ov = document.createElement('div');
   ov.id = 'raanu-popup';
@@ -13425,9 +13424,8 @@ function showGoodMorningPopup() {
   const fr = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
   const h = fr.getHours();
   if (h < 8 || h >= 12) return false;
-  const today = fr.toISOString().slice(0, 10);
-  if (localStorage.getItem('rish_gm_shown_' + today)) return false;
-  localStorage.setItem('rish_gm_shown_' + today, '1');
+  if (sessionStorage.getItem('rish_gm_shown')) return false;
+  sessionStorage.setItem('rish_gm_shown', '1');
 
   const ov = document.createElement('div');
   ov.id = 'gm-popup';
