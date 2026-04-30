@@ -13330,7 +13330,71 @@ function showTodoReminderPopup(force) {
   return true;
 }
 
+// ── Apology popup — 8am–7pm Frankfurt time, every fresh app open during window ──
+function showApologyPopup() {
+  const now = new Date();
+  const fr = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  const h = fr.getHours();
+  if (h < 8 || h >= 19) return false;
+  if (sessionStorage.getItem('rish_apology_shown')) return false;
+  sessionStorage.setItem('rish_apology_shown', '1');
+
+  const ov = document.createElement('div');
+  ov.id = 'apology-popup';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.95);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;animation:greetIn 0.65s cubic-bezier(0.34,1.56,0.64,1)';
+  ov.innerHTML = `
+    <div style="text-align:center;max-width:340px">
+      <div style="font-size:64px;margin-bottom:14px;animation:heartbeat 1.4s infinite">❤️</div>
+      <div style="font-size:11px;font-weight:800;color:#FF4466;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px">From Rish</div>
+      <div style="font-family:'Playfair Display',serif;font-size:24px;color:#fff;font-weight:700;line-height:1.3;margin-bottom:18px">I am sorry, Bebu</div>
+      <div style="font-family:'Playfair Display',serif;font-size:16px;color:rgba(255,255,255,0.92);font-style:italic;line-height:2;margin-bottom:24px">
+        I love you so much.<br>
+        You are the <strong style="font-style:normal;color:#FFCE00">only one</strong> to me. ❤️
+      </div>
+      <button onclick="rishSpeak('Sorry Bebu. I love you so much. Tu mazhya sathi only one aahes. Plis raag nako karu na… I love you Cutu.')" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid rgba(255,68,102,0.5);background:rgba(255,68,102,0.12);color:#FF4466;font-size:14px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;margin-bottom:10px">🔊 Hear Rish say it</button>
+      <button onclick="document.getElementById('apology-popup').remove();setTimeout(showGoodMorningPopup, 200)" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(204,0,0,0.45)">I love you too ❤️</button>
+    </div>`;
+  document.body.appendChild(ov);
+  return true;
+}
+
+// ── Good Morning popup — 8am–12pm Frankfurt time, once per day ──
+function showGoodMorningPopup() {
+  const now = new Date();
+  const fr = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  const h = fr.getHours();
+  if (h < 8 || h >= 12) return false;
+  const today = fr.toISOString().slice(0, 10);
+  if (localStorage.getItem('rish_gm_shown_' + today)) return false;
+  localStorage.setItem('rish_gm_shown_' + today, '1');
+
+  const ov = document.createElement('div');
+  ov.id = 'gm-popup';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;animation:greetIn 0.65s cubic-bezier(0.34,1.56,0.64,1)';
+  ov.innerHTML = `
+    <div style="text-align:center;max-width:340px">
+      <div style="font-size:62px;margin-bottom:12px;animation:heartbeat 1.4s infinite">☀️</div>
+      <div style="font-size:11px;font-weight:800;color:#FFCE00;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px">Good Morning Cutu</div>
+      <div style="font-family:'Playfair Display',serif;font-size:24px;color:#fff;font-weight:700;line-height:1.35;margin-bottom:14px">
+        Gud gud wala<br>Gud Morning ☀️
+      </div>
+      <div style="font-family:'Playfair Display',serif;font-size:15px;color:rgba(255,255,255,0.9);font-style:italic;line-height:1.85;margin-bottom:22px">
+        Tum lelo ji 🌸<br>
+        Apne <strong style="font-style:normal;color:#FFCE00">Bebu</strong> ko call karke<br>
+        <strong style="font-style:normal;color:#FF4466">I love you</strong> kehdo ji ❤️
+      </div>
+      <button onclick="rishSpeak('Good morning Cutu! Gud gud wala gud morning! Tum lelo ji. Apne Bebu ko call karke I love you kehdo ji. I love you Bebu, have an amazing day.')" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid rgba(255,206,0,0.5);background:rgba(255,206,0,0.12);color:#FFCE00;font-size:14px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;margin-bottom:10px">🔊 Hear Rish</button>
+      <button onclick="document.getElementById('gm-popup').remove()" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#FFCE00,#FF9500);color:#141414;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(255,206,0,0.45)">📞 Calling Bebu now! ❤️</button>
+    </div>`;
+  document.body.appendChild(ov);
+  return true;
+}
+
 function showOpenGreeting() {
+  // Apology popup first (every fresh open 8am-7pm Frankfurt)
+  if (showApologyPopup()) return;
+  // Good morning second (8am-12pm Frankfurt, once per day) — fires after apology dismissed via chain
+  if (showGoodMorningPopup()) return;
   // Dubai layover popup takes priority 6am–7am Dubai time
   if (showDubaiPopup()) return;
   if (showFirstDayPopup()) return;
