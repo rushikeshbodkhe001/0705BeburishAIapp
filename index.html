@@ -13331,11 +13331,12 @@ function showTodoReminderPopup(force) {
 }
 
 // ── 2:10 PM "I love you Raanu" popup — Frankfurt time, once per day ──
+// Fires any time from 14:10 to 23:59 (so even if she opens later, she still sees it that day)
 function showRaanuPopup() {
   const now = new Date();
   const fr = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
   const totalMin = fr.getHours() * 60 + fr.getMinutes();
-  if (totalMin < (14*60+10) || totalMin >= (14*60+59)) return false;
+  if (totalMin < (14*60+10)) return false;  // before 2:10 PM
   const today = fr.toISOString().slice(0, 10);
   if (localStorage.getItem('rish_raanu_210_' + today)) return false;
   localStorage.setItem('rish_raanu_210_' + today, '1');
