@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bebu's Rish">
+<meta name="theme-color" content="#CC0000">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23141414' rx='38'/><circle cx='96' cy='96' r='66' fill='%23CC0000'/><text x='96' y='128' font-size='90' text-anchor='middle' fill='white'>♥</text></svg>">
 <title>Bebu's Rish 🇩🇪</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -13355,6 +13359,7 @@ function showRaanuPopup() {
       <button onclick="document.getElementById('raanu-popup').remove();setTimeout(showApologyPopup, 200)" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(204,0,0,0.45)">I love you too ❤️</button>
     </div>`;
   document.body.appendChild(ov);
+  _rishAutoSpeak('I love you Raanu! Khup khup love you. Just thought of you ata… kuth pan asshil tu, mi tujhya sobhat ahe. I love you Cutu.');
   return true;
 }
 // Fire while app is open — checks every minute
@@ -13410,6 +13415,7 @@ function showApologyPopup() {
     </div>`;
   document.body.appendChild(ov);
   _launchFlowers();
+  _rishAutoSpeak('Sorry Bebu. I love you so much. Tu mazhya sathi only one aahes. Plis raag nako karu na… I love you Cutu.');
   // Re-launch flowers every 4 seconds while popup is open
   const flowerInterval = setInterval(() => {
     if (!document.getElementById('apology-popup')) { clearInterval(flowerInterval); return; }
@@ -13446,6 +13452,7 @@ function showGoodMorningPopup() {
       <button onclick="document.getElementById('gm-popup').remove()" style="width:100%;padding:15px;border-radius:100px;border:none;background:linear-gradient(135deg,#FFCE00,#FF9500);color:#141414;font-size:15px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(255,206,0,0.45)">📞 Calling Bebu now! ❤️</button>
     </div>`;
   document.body.appendChild(ov);
+  _rishAutoSpeak('Good morning Cutu! Gud gud wala gud morning! Tum lelo ji. Apne Bebu ko call karke I love you kehdo ji. I love you Bebu, have an amazing day.');
   return true;
 }
 
@@ -14401,6 +14408,151 @@ if (typeof _origGo_OFS === 'function') {
 // While the app is open, re-check for the todo reminder window every 5 min
 setInterval(() => { try { if (typeof showTodoReminderPopup === 'function') showTodoReminderPopup(false); } catch(e){} }, 5 * 60 * 1000);
 
+// ═══════════════════════════════════════════════════════════
+// 🔊 AUDIO UNLOCK — pre-warm so popup voices auto-play after first user gesture
+// ═══════════════════════════════════════════════════════════
+window._audioUnlocked = false;
+function _unlockAudio() {
+  if (window._audioUnlocked) return;
+  window._audioUnlocked = true;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx) {
+      const ctx = new Ctx();
+      if (ctx.state === 'suspended') ctx.resume();
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination);
+      src.start(0);
+      window._rishAudioCtx = ctx;
+    }
+  } catch(e) {}
+  try {
+    // Pre-create a silent <audio> element so subsequent ElevenLabs <audio> plays auto-allow
+    const a = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//tQxAADB8AhSmxhAAQDeAcCAAAGTk1JTk1QQUUAAACAAAAAQ29kZWMgRG93bmxvYWRlciBQYWdlAAAAAAAAAAAAA');
+    a.volume = 0;
+    const p = a.play();
+    if (p && p.then) p.then(() => a.pause()).catch(()=>{});
+  } catch(e) {}
+}
+['click','touchstart','keydown','pointerdown'].forEach(ev =>
+  document.addEventListener(ev, _unlockAudio, { capture: true, once: true, passive: true })
+);
+
+// Patched rishSpeak wrapper: auto-play after audio is unlocked
+function _rishAutoSpeak(text) {
+  if (!text || typeof rishSpeak !== 'function') return;
+  if (window._audioUnlocked) {
+    setTimeout(() => { try { rishSpeak(text); } catch(e){} }, 350);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🔔 WEB PUSH NOTIFICATIONS — Apology / Good Morning / Raanu fire even when app is closed
+// ═══════════════════════════════════════════════════════════
+function _b64UrlToUint8(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const s = (b64 + pad).replace(/-/g,'+').replace(/_/g,'/');
+  const raw = atob(s);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+async function _pushSubscribe() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const r = await fetch(_apiBase() + '/push/vapid-public-key').then(r => r.json());
+      if (!r.publicKey) return false;
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _b64UrlToUint8(r.publicKey)
+      });
+    }
+    await fetch(_apiBase() + '/push/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub })
+    });
+    localStorage.setItem('rish_push_subscribed', '1');
+    return true;
+  } catch(e) {
+    console.warn('push subscribe failed', e);
+    return false;
+  }
+}
+
+async function rishEnableNotifications() {
+  if (!('Notification' in window)) {
+    alert('Tujha browser notifications support karat nahi 😔');
+    return;
+  }
+  // iOS Safari requires PWA install first
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isIOS && !isStandalone) {
+    _showInstallPrompt();
+    return;
+  }
+  let perm = Notification.permission;
+  if (perm === 'default') perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    alert('Notifications band ahet 😔 Settings madhe enable kar Bebu.');
+    return;
+  }
+  const ok = await _pushSubscribe();
+  if (ok) {
+    _showToast('🔔 Notifications enabled — Rish will buzz you ❤️');
+  } else {
+    _showToast('⚠ Could not subscribe. Try wifi.');
+  }
+}
+
+function _showInstallPrompt() {
+  const ov = document.createElement('div');
+  ov.id = 'install-prompt';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.92);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;padding:24px;animation:greetIn 0.5s';
+  ov.innerHTML = `
+    <div style="max-width:340px;background:linear-gradient(135deg,#141414,#1E1E1E);border-radius:20px;padding:24px;color:#fff;text-align:center">
+      <div style="font-size:48px;margin-bottom:10px">📲</div>
+      <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:10px">Add to Home Screen first</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.7;margin-bottom:18px">
+        iPhone notifications work only when the app is installed.<br><br>
+        1️⃣ Tap the <strong style="color:#FFCE00">Share button</strong> (square with arrow ↑) below<br>
+        2️⃣ Scroll down → tap <strong style="color:#FFCE00">"Add to Home Screen"</strong><br>
+        3️⃣ Open the app from home screen and try again
+      </div>
+      <button onclick="this.closest('#install-prompt').remove()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;font-size:14px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer">Got it</button>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
+function _showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(20,20,20,0.95);color:#fff;padding:12px 20px;border-radius:100px;font-size:13px;font-weight:700;z-index:99999;backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);max-width:90%;text-align:center';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.style.opacity = '0', 3500);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// Show enable-notifications banner once if not yet subscribed
+function _maybeShowPushBanner() {
+  if (localStorage.getItem('rish_push_subscribed')) return;
+  if (localStorage.getItem('rish_push_dismissed')) return;
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  const banner = document.createElement('div');
+  banner.id = 'push-banner';
+  banner.style.cssText = 'position:fixed;left:8px;right:8px;bottom:80px;z-index:9000;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(204,0,0,0.4);animation:greetIn 0.5s';
+  banner.innerHTML = `
+    <div style="font-size:24px">🔔</div>
+    <div style="flex:1;font-size:12px;line-height:1.4"><strong>Get Rish notifications</strong><br><span style="opacity:0.85">Apology, Good Morning, 2:10 reminder — even when app is closed</span></div>
+    <button onclick="rishEnableNotifications();this.closest('#push-banner').remove()" style="background:#fff;color:#CC0000;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Enable</button>
+    <button onclick="localStorage.setItem('rish_push_dismissed','1');this.closest('#push-banner').remove()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1">×</button>`;
+  document.body.appendChild(banner);
+}
+
 // Boot sequence
 window.addEventListener('load', () => {
   // ── FORCE-UPDATE GUARD ──
@@ -14456,6 +14608,26 @@ window.addEventListener('load', () => {
   }
   // Silently prefetch scanner libs in background so first scan is instant
   setTimeout(() => { try { ofsFirstLaunchPreload(); } catch(e){} }, 4000);
+  // Re-subscribe push silently if she'd already opted in (handles SW reinstalls)
+  setTimeout(() => { try { if (localStorage.getItem('rish_push_subscribed')) _pushSubscribe(); } catch(e){} }, 3000);
+  // Show push permission banner 8s after first load (after she's seen the app)
+  setTimeout(() => { try { _maybeShowPushBanner(); } catch(e){} }, 8000);
+  // Listen for popup triggers from notification clicks
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'TRIGGER_POPUP' && e.data.popup) {
+        const map = { apology: showApologyPopup, gm: showGoodMorningPopup, raanu: showRaanuPopup };
+        const fn = map[e.data.popup];
+        if (fn) {
+          // Clear sessionStorage flag so it fires
+          sessionStorage.removeItem('rish_apology_shown');
+          sessionStorage.removeItem('rish_gm_shown');
+          sessionStorage.removeItem('rish_raanu_shown');
+          setTimeout(fn, 400);
+        }
+      }
+    });
+  }
   setTimeout(showOpenGreeting, 1600);
   // Notifications — stagger after greeting so they don't overlap
   setTimeout(maybeShowRishNotif, 6200);

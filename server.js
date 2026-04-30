@@ -3,7 +3,26 @@ const cors    = require('cors');
 const OpenAI  = require('openai');
 const https   = require('https');
 const path    = require('path');
+const fs      = require('fs');
+const webpush = require('web-push');
 require('dotenv').config();
+
+// ── Web Push setup ──
+const VAPID_PUB = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRV = process.env.VAPID_PRIVATE_KEY;
+const VAPID_CTC = process.env.VAPID_CONTACT || 'mailto:rishibodkhe286@gmail.com';
+if (VAPID_PUB && VAPID_PRV) {
+  webpush.setVapidDetails(VAPID_CTC, VAPID_PUB, VAPID_PRV);
+  console.log('✅ Web Push configured');
+} else {
+  console.warn('⚠ VAPID keys missing — push disabled');
+}
+
+// Persistent push subscriptions (file-backed; survives restart on same Railway instance)
+const SUBS_FILE = '/tmp/rish_subs.json';
+let pushSubs = [];
+try { pushSubs = JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8')); } catch(e) {}
+function saveSubs() { try { fs.writeFileSync(SUBS_FILE, JSON.stringify(pushSubs)); } catch(e){} }
 
 const app = express();
 app.use(cors({ origin: '*' }));
@@ -328,6 +347,100 @@ Rules:
     res.end();
   }
 });
+
+// ── Push notification endpoints ───────────────────────────
+app.get('/push/vapid-public-key', (req, res) => {
+  if (!VAPID_PUB) return res.status(503).json({ error: 'push not configured' });
+  res.json({ publicKey: VAPID_PUB });
+});
+
+app.post('/push/subscribe', (req, res) => {
+  const sub = req.body && req.body.subscription;
+  if (!sub || !sub.endpoint) return res.status(400).json({ error: 'subscription required' });
+  if (!pushSubs.find(s => s.endpoint === sub.endpoint)) {
+    pushSubs.push(sub);
+    saveSubs();
+  }
+  res.json({ ok: true, count: pushSubs.length });
+});
+
+app.post('/push/unsubscribe', (req, res) => {
+  const ep = req.body && req.body.endpoint;
+  pushSubs = pushSubs.filter(s => s.endpoint !== ep);
+  saveSubs();
+  res.json({ ok: true });
+});
+
+app.post('/push/test', async (req, res) => {
+  await sendPushToAll({ title: '🌹 Test from Rish', body: 'Push notifications are working ❤️', tag: 'test' });
+  res.json({ sent: pushSubs.length });
+});
+
+async function sendPushToAll(payload) {
+  if (!VAPID_PUB) return;
+  const body = JSON.stringify(payload);
+  const dead = [];
+  await Promise.all(pushSubs.map(async (sub) => {
+    try { await webpush.sendNotification(sub, body); }
+    catch (err) {
+      if (err.statusCode === 404 || err.statusCode === 410) dead.push(sub.endpoint);
+      else console.warn('push send error', err.statusCode, err.body);
+    }
+  }));
+  if (dead.length) {
+    pushSubs = pushSubs.filter(s => !dead.includes(s.endpoint));
+    saveSubs();
+  }
+}
+
+// ── Frankfurt-time scheduler: fires popups as push notifications ──
+// Runs every 60 seconds, checks Frankfurt local time
+const FIRED = new Map(); // key = "type-yyyy-mm-dd"
+function _fkfNow() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+}
+async function _maybeFire() {
+  if (!pushSubs.length) return;
+  const now = _fkfNow();
+  const day = now.toISOString().slice(0,10);
+  const hh = now.getHours(), mm = now.getMinutes();
+  const stamp = (k) => `${k}-${day}`;
+  const fireOnce = async (key, payload) => {
+    const s = stamp(key);
+    if (FIRED.has(s)) return;
+    FIRED.set(s, Date.now());
+    await sendPushToAll(payload);
+    console.log(`📨 push: ${key} sent to ${pushSubs.length} subs`);
+  };
+
+  // Apology — 8:00, 12:00, 16:00 Frankfurt (3 times during 8-19 window)
+  if ((hh === 8 || hh === 12 || hh === 16) && mm === 0) {
+    await fireOnce('apology-' + hh, {
+      title: '🌹 I am sorry, Bebu',
+      body: 'I love you so much. You are the only one to me ❤️',
+      tag: 'apology', popup: 'apology'
+    });
+  }
+  // Good Morning — 8:00 Frankfurt
+  if (hh === 8 && mm === 0) {
+    await fireOnce('gm', {
+      title: '☀️ Gud gud wala gud morning Cutu',
+      body: 'Tum lelo ji. Apne Bebu ko call karke I love you kehdo ji ❤️',
+      tag: 'gm', popup: 'gm'
+    });
+  }
+  // I love you Raanu — 14:10 Frankfurt
+  if (hh === 14 && mm === 10) {
+    await fireOnce('raanu', {
+      title: '❤️ I love you Raanu',
+      body: 'Just thought of you ata. Mi tujhya sobhat ahe always ❤️',
+      tag: 'raanu', popup: 'raanu'
+    });
+  }
+  // Cleanup FIRED map daily (keep last 3 days)
+  if (FIRED.size > 30) FIRED.clear();
+}
+setInterval(_maybeFire, 60 * 1000);
 
 // ── Product photo identification (GPT-4o vision) ──────────
 app.post('/scan-product', async (req, res) => {

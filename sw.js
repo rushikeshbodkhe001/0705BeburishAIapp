@@ -1,5 +1,38 @@
-// Service Worker — caches scanner libs offline; HTML is always fresh.
-const CACHE = 'rish-ofs-v12-popups-every-open';
+// Service Worker — caches scanner libs offline; HTML is always fresh; handles push notifications.
+const CACHE = 'rish-ofs-v13-push';
+
+// ── Push notification handlers ──
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch(err) { data = { title: 'Rish', body: e.data ? e.data.text() : '' }; }
+  const title = data.title || '❤️ Rish';
+  const opts = {
+    body: data.body || '',
+    tag: data.tag || 'rish',
+    badge: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 96 96\'><rect width=\'96\' height=\'96\' fill=\'%23CC0000\' rx=\'20\'/><text x=\'48\' y=\'68\' font-size=\'56\' text-anchor=\'middle\' fill=\'white\'>♥</text></svg>',
+    icon: 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 192 192\'><rect width=\'192\' height=\'192\' fill=\'%23141414\' rx=\'38\'/><circle cx=\'96\' cy=\'96\' r=\'66\' fill=\'%23CC0000\'/><text x=\'96\' y=\'128\' font-size=\'90\' text-anchor=\'middle\' fill=\'white\'>♥</text></svg>',
+    vibrate: [120, 60, 120, 60, 240],
+    data: { popup: data.popup, url: '/' },
+    requireInteraction: false,
+    renotify: true
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const popup = e.notification.data && e.notification.data.popup;
+  e.waitUntil((async () => {
+    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    let client = list.find(c => 'focus' in c);
+    if (client) {
+      await client.focus();
+      if (popup) client.postMessage({ type: 'TRIGGER_POPUP', popup });
+    } else {
+      await self.clients.openWindow('./?popup=' + (popup || ''));
+    }
+  })());
+});
 const RUNTIME_HOSTS = [
   'cdn.jsdelivr.net',
   'tessdata.projectnaptha.com',
