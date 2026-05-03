@@ -6152,11 +6152,11 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
         </a>
 
         <!-- Call Rish -->
-        <a id="emer-rish-call" href="tel:+353899491599" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:linear-gradient(135deg,#141414,#2A2A2A);color:#fff;border-radius:16px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.25)">
+        <a id="emer-rish-call" href="tel:+353892632834" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:linear-gradient(135deg,#141414,#2A2A2A);color:#fff;border-radius:16px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.25)">
           <div style="width:42px;height:42px;border-radius:50%;background:rgba(255,206,0,0.2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">❤️</div>
           <div style="flex:1">
             <div style="font-size:15px;font-weight:800;line-height:1;color:#FFCE00">Rish la Call kar</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:3px">+353 899 491 599 · Mi uTaveen — 100% ❤️</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:3px">+353 89 263 2834 · Mi uTaveen — 100% ❤️</div>
           </div>
         </a>
 
@@ -6165,7 +6165,7 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
           <div style="width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💬</div>
           <div style="flex:1">
             <div style="font-size:15px;font-weight:800;line-height:1">Rish la WhatsApp kar</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.82);margin-top:3px">+91 95619 26436 · Rish ला message जातो लगेच</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.82);margin-top:3px">+353 89 263 2834 · Rish ला message जातो लगेच</div>
           </div>
         </button>
 
@@ -6339,12 +6339,12 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
       <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--indigo);margin-bottom:4px">Settings ⚙️</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Manage keys & app data</div>
 
-      <!-- SHARE MODE TOGGLE -->
+      <!-- DISPLAY MODE TOGGLE -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--sh);margin-bottom:14px">
-        <div style="font-size:13px;font-weight:800;color:var(--indigo);margin-bottom:4px">👥 Share Mode</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">When ON: nicknames hidden (shows "Ankita"), Rish's voice silenced. Perfect for showing the app to friends or family.</div>
-        <button id="share-mode-btn" onclick="rishSetShareMode(!rishIsShareMode())" style="width:100%;padding:11px;border-radius:10px;border:1px solid;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">👥 Share mode (Ankita)</button>
-        <div style="margin-top:6px;font-size:10px;color:var(--text3);text-align:center">Tap to switch</div>
+        <div style="font-size:13px;font-weight:800;color:var(--indigo);margin-bottom:4px">👤 Display mode</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5"><strong>Normal mode</strong> — app shows as "Dr. Ankita", voice silenced, nicknames hidden. Safe to show anyone.<br><strong>Personal mode</strong> — your private version with cloned voice + nicknames.</div>
+        <button id="share-mode-btn" onclick="rishSetShareMode(!rishIsShareMode())" style="width:100%;padding:11px;border-radius:10px;border:1px solid;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">👤 Normal mode — Dr. Ankita</button>
+        <div style="margin-top:6px;font-size:10px;color:var(--text3);text-align:center">Tap to switch modes</div>
       </div>
 
       <!-- API KEY SECTION -->
@@ -7777,8 +7777,8 @@ const MORNING_MESSAGES = [
 ];
 
 // ── RISH CONTACT ──
-const RISH_WHATSAPP = '919561926436'; // +91 WhatsApp
-const RISH_CALL     = '+353899491599'; // Ireland calling
+const RISH_WHATSAPP = '353892632834'; // Ireland WhatsApp
+const RISH_CALL     = '+353892632834'; // Ireland calling
 
 function sendSafeCheckin() {
   const now = new Date();
@@ -8528,7 +8528,7 @@ function playRecordedVoice() {
 
 // ── CALL PUSH SYSTEM ──
 // Rish's phone number — set this once
-const RISH_PHONE = '+353899491599'; // Rish Ireland number
+const RISH_PHONE = '+353892632834'; // Rish Ireland number
 const RISH_SMS_BODY = encodeURIComponent('Rish, mala bar nahi vatat... tu ithach aahes na? ❤️');
 
 function showCallPush(title, msg) {
@@ -10441,7 +10441,7 @@ function renderFinTrends() {
 // ═══════════════════════════════════════════════════════
 // TIME ZONE WIDGET — Live clocks for Pune / Marburg / Dublin
 // ═══════════════════════════════════════════════════════
-const RISH_WHATSAPP_OLD = '+919561926436'; // Rish WhatsApp India
+const RISH_WHATSAPP_OLD = '+353892632834'; // Rish WhatsApp Ireland
 
 function tzFormat(tz) {
   try {
@@ -12100,10 +12100,21 @@ function rishStrip(text) {
     .replace(/\bpillu+\b/gi, 'Ankita');
 }
 
+// Transform text for ElevenLabs so it pronounces nicknames correctly
+function _rishPhonetic(text) {
+  if (!text) return text;
+  return text
+    // 'Cutu' should sound like Q-two, not chutu — give ElevenLabs the phonetic spelling
+    .replace(/\bCutu\b/g, 'Q two').replace(/\bcutu\b/g, 'Q two')
+    .replace(/\bCuttu+\b/gi, 'Q two').replace(/\bCutttu+\b/gi, 'Q two');
+}
+
 async function rishSpeak(text, opts = {}) {
   if (!text || !text.trim()) return;
-  // Share mode: skip the cloned voice entirely. Don't play anything.
+  // Normal (share) mode: skip the cloned voice entirely. Don't play anything.
   if (rishIsShareMode()) return;
+  // Phonetic fix BEFORE sending to ElevenLabs
+  text = _rishPhonetic(text);
 
   // Stop any active playback cleanly
   if (_elCurrentAudio) {
@@ -14446,7 +14457,7 @@ if (typeof _origGo_OFS === 'function') {
 setInterval(() => { try { if (typeof showTodoReminderPopup === 'function') showTodoReminderPopup(false); } catch(e){} }, 5 * 60 * 1000);
 
 // ═══════════════════════════════════════════════════════════
-// 👤 SHARE MODE — strip nicknames from any rendered text
+// 👤 NORMAL MODE (formerly Share Mode) — Dr. Ankita branding, Rishi instead of Rish
 // ═══════════════════════════════════════════════════════════
 function _shareModeStripDOM(root) {
   if (!root || !root.querySelectorAll) return;
@@ -14457,6 +14468,11 @@ function _shareModeStripDOM(root) {
     const t = node.nodeValue;
     if (!t) return;
     const swapped = t
+      // App branding: 'Bebu's Rish' → 'Dr. Ankita'
+      .replace(/Bebu's Rish/g, 'Dr. Ankita')
+      // 'Rish' → 'Rishi' (but not inside larger words like rishikesh)
+      .replace(/\bRish\b/g, 'Rishi').replace(/\brish\b/g, 'Rishi')
+      // Nicknames → Ankita
       .replace(/\bBebu's\b/g, "Ankita's")
       .replace(/\bCutu's\b/g, "Ankita's")
       .replace(/\bRaanu's\b/g, "Ankita's")
@@ -14478,7 +14494,7 @@ function _shareModeUpdateUI() {
   const b = document.getElementById('share-mode-btn');
   if (b) {
     const on = rishIsShareMode();
-    b.textContent = on ? '👥 Share mode (Ankita)' : '❤️ Personal (Bebu)';
+    b.textContent = on ? '👤 Normal mode — Dr. Ankita' : '❤️ Personal mode — Bebu';
     b.style.background = on ? 'rgba(184,134,11,0.18)' : 'rgba(204,0,0,0.15)';
     b.style.color = on ? '#FFCE00' : '#FF4466';
     b.style.borderColor = on ? 'rgba(255,206,0,0.3)' : 'rgba(255,68,102,0.3)';
@@ -14636,20 +14652,27 @@ function _showToast(msg) {
   setTimeout(() => t.remove(), 4000);
 }
 
-// Show enable-notifications banner once if not yet subscribed
+// Show enable-notifications banner — keeps coming back every app open until accepted
 function _maybeShowPushBanner() {
   if (localStorage.getItem('rish_push_subscribed')) return;
-  if (localStorage.getItem('rish_push_dismissed')) return;
+  if (Notification.permission === 'granted') { _pushSubscribe(); return; }
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (document.getElementById('push-banner')) return; // already showing
   const banner = document.createElement('div');
   banner.id = 'push-banner';
   banner.style.cssText = 'position:fixed;left:8px;right:8px;bottom:80px;z-index:9000;background:linear-gradient(135deg,#CC0000,#FF4466);color:#fff;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(204,0,0,0.4);animation:greetIn 0.5s';
   banner.innerHTML = `
     <div style="font-size:24px">🔔</div>
-    <div style="flex:1;font-size:12px;line-height:1.4"><strong>Get Rish notifications</strong><br><span style="opacity:0.85">Apology, Good Morning, 2:10 reminder — even when app is closed</span></div>
-    <button onclick="rishEnableNotifications();this.closest('#push-banner').remove()" style="background:#fff;color:#CC0000;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Enable</button>
-    <button onclick="localStorage.setItem('rish_push_dismissed','1');this.closest('#push-banner').remove()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1">×</button>`;
+    <div style="flex:1;font-size:12px;line-height:1.4"><strong>Get notifications</strong><br><span style="opacity:0.85">Stay updated even when the app is closed</span></div>
+    <button onclick="rishEnableNotifications()" style="background:#fff;color:#CC0000;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Enable</button>`;
   document.body.appendChild(banner);
+  // Re-check every 30s — if she still hasn't enabled, the banner stays
+  setTimeout(() => {
+    if (!localStorage.getItem('rish_push_subscribed') && Notification.permission !== 'granted') {
+      const b = document.getElementById('push-banner');
+      if (!b) _maybeShowPushBanner();
+    }
+  }, 30 * 1000);
 }
 
 // Boot sequence
