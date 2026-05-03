@@ -6339,6 +6339,14 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
       <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--indigo);margin-bottom:4px">Settings ⚙️</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Manage keys & app data</div>
 
+      <!-- SHARE MODE TOGGLE -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--sh);margin-bottom:14px">
+        <div style="font-size:13px;font-weight:800;color:var(--indigo);margin-bottom:4px">👥 Share Mode</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">When ON: nicknames hidden (shows "Ankita"), Rish's voice silenced. Perfect for showing the app to friends or family.</div>
+        <button id="share-mode-btn" onclick="rishSetShareMode(!rishIsShareMode())" style="width:100%;padding:11px;border-radius:10px;border:1px solid;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">👥 Share mode (Ankita)</button>
+        <div style="margin-top:6px;font-size:10px;color:var(--text3);text-align:center">Tap to switch</div>
+      </div>
+
       <!-- API KEY SECTION -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--sh);margin-bottom:14px">
         <div style="font-size:13px;font-weight:800;color:var(--indigo);margin-bottom:4px">🔑 Anthropic API Key</div>
@@ -12066,8 +12074,36 @@ function _elHideStatus(pill, statusEl) {
 
 let _elCurrentAudio = null;
 
+// ── Share Mode: when ON, hide nicknames + silence cloned voice (default ON) ──
+function rishIsShareMode() {
+  const v = localStorage.getItem('rish_share_mode');
+  return v === null ? true : v === '1';   // default ON
+}
+function rishSetShareMode(on) {
+  localStorage.setItem('rish_share_mode', on ? '1' : '0');
+  _shareModeUpdateUI();
+}
+// Replace nicknames with 'Ankita' for any string before display/speech
+function rishStrip(text) {
+  if (!text || !rishIsShareMode()) return text;
+  return text
+    .replace(/\bBebu's\b/gi, "Ankita's")
+    .replace(/\bCutu's\b/gi, "Ankita's")
+    .replace(/\bRaanu's\b/gi, "Ankita's")
+    .replace(/\bBebu\b/g, 'Ankita')
+    .replace(/\bbebu\b/g, 'Ankita')
+    .replace(/\bCutu\b/g, 'Ankita')
+    .replace(/\bcutu\b/g, 'Ankita')
+    .replace(/\bRaanu\b/g, 'Ankita')
+    .replace(/\braanu\b/g, 'Ankita')
+    .replace(/\bgobri+\b/gi, 'Ankita')
+    .replace(/\bpillu+\b/gi, 'Ankita');
+}
+
 async function rishSpeak(text, opts = {}) {
   if (!text || !text.trim()) return;
+  // Share mode: skip the cloned voice entirely. Don't play anything.
+  if (rishIsShareMode()) return;
 
   // Stop any active playback cleanly
   if (_elCurrentAudio) {
@@ -14408,6 +14444,68 @@ if (typeof _origGo_OFS === 'function') {
 
 // While the app is open, re-check for the todo reminder window every 5 min
 setInterval(() => { try { if (typeof showTodoReminderPopup === 'function') showTodoReminderPopup(false); } catch(e){} }, 5 * 60 * 1000);
+
+// ═══════════════════════════════════════════════════════════
+// 👤 SHARE MODE — strip nicknames from any rendered text
+// ═══════════════════════════════════════════════════════════
+function _shareModeStripDOM(root) {
+  if (!root || !root.querySelectorAll) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const nodes = [];
+  let n; while ((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(node => {
+    const t = node.nodeValue;
+    if (!t) return;
+    const swapped = t
+      .replace(/\bBebu's\b/g, "Ankita's")
+      .replace(/\bCutu's\b/g, "Ankita's")
+      .replace(/\bRaanu's\b/g, "Ankita's")
+      .replace(/\bBebu\b/g, 'Ankita').replace(/\bbebu\b/g, 'Ankita')
+      .replace(/\bCutu\b/g, 'Ankita').replace(/\bcutu\b/g, 'Ankita')
+      .replace(/\bRaanu\b/g, 'Ankita').replace(/\braanu\b/g, 'Ankita')
+      .replace(/\bgobri+\b/gi, 'Ankita')
+      .replace(/\bpillu+\b/gi, 'Ankita');
+    if (swapped !== t) node.nodeValue = swapped;
+  });
+}
+function _shareModeApply() {
+  if (!(typeof rishIsShareMode === 'function') || !rishIsShareMode()) return;
+  _shareModeStripDOM(document.body);
+}
+function _shareModeUpdateUI() {
+  // Rerun strip + update toggle button label
+  _shareModeApply();
+  const b = document.getElementById('share-mode-btn');
+  if (b) {
+    const on = rishIsShareMode();
+    b.textContent = on ? '👥 Share mode (Ankita)' : '❤️ Personal (Bebu)';
+    b.style.background = on ? 'rgba(184,134,11,0.18)' : 'rgba(204,0,0,0.15)';
+    b.style.color = on ? '#FFCE00' : '#FF4466';
+    b.style.borderColor = on ? 'rgba(255,206,0,0.3)' : 'rgba(255,68,102,0.3)';
+  }
+}
+
+// MutationObserver: any new popup/screen content gets stripped automatically
+const _shareModeObs = new MutationObserver(muts => {
+  if (!rishIsShareMode()) return;
+  muts.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) _shareModeStripDOM(n); }));
+});
+document.addEventListener('DOMContentLoaded', () => {
+  _shareModeObs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(_shareModeApply, 600);
+});
+window.addEventListener('load', () => { setTimeout(_shareModeApply, 1000); setTimeout(_shareModeUpdateUI, 1100); });
+
+// Refresh button label whenever Settings opens
+(function _wireShareModeOnGo(){
+  const orig = window.go;
+  if (typeof orig !== 'function') return;
+  window.go = function(name) {
+    const r = orig.apply(this, arguments);
+    if (name === 'settings') setTimeout(_shareModeUpdateUI, 30);
+    return r;
+  };
+})();
 
 // ═══════════════════════════════════════════════════════════
 // 🔊 AUDIO UNLOCK — pre-warm so popup voices auto-play after first user gesture
