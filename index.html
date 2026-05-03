@@ -13363,10 +13363,10 @@ function showMotivationMondayPopup() {
 }
 
 function showFirstDayPopup() {
-  // 1 May 2026 — first day at Max Planck institute. 7am–12pm Marburg time.
+  // 4 May 2026 — first day at Max Planck institute. 7am–12pm Marburg time.
   const now = new Date();
   const mb = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
-  if (mb.toISOString().slice(0,10) !== '2026-05-01') return false;
+  if (mb.toISOString().slice(0,10) !== '2026-05-04') return false;
   const h = mb.getHours();
   if (h < 7 || h >= 12) return false;
   if (localStorage.getItem('rish_firstday_inst_done')) return false;
