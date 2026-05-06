@@ -14856,13 +14856,14 @@ function playAnnivSong() {
    Local device time. Runs once per device (localStorage flag).
 ═══════════════════════════════════════════════════════════════ */
 function triggerAnniversaryExperience(){
-  const today = new Date();
+  // Use Frankfurt time (Europe/Berlin) regardless of device timezone
+  const fr = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
   const isAnniversary =
-    today.getMonth() === 4 && // May = 4
-    today.getDate() === 7;
+    fr.getMonth() === 4 && // May = 4
+    fr.getDate() === 7;
 
   if (!isAnniversary) return;
-  const shownKey = 'anniversary_shown_' + today.getFullYear();
+  const shownKey = 'anniversary_shown_' + fr.getFullYear();
   if (localStorage.getItem(shownKey) === '1') return;
 
   // Lock it immediately so a refresh mid-experience doesn't replay
@@ -14975,6 +14976,16 @@ window.addEventListener('load', () => {
   }
 });
 
+// Live watcher: re-check every 30s. Catches midnight crossing if app is already open.
+setInterval(() => {
+  try { triggerAnniversaryExperience(); } catch(e){}
+}, 30 * 1000);
+
+// Also when she returns to the tab (visibilitychange)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { try { triggerAnniversaryExperience(); } catch(e){} }
+});
+
 
 /* ═══════════════════════════════════════════════════════════════
    💕 ANNIVERSARY MODE — Unified Module
@@ -14985,9 +14996,9 @@ window.addEventListener('load', () => {
 (function AnniversaryModule() {
   'use strict';
 
-  // ── Detection ──
+  // ── Detection (Frankfurt time, not device time) ──
   function isAnniversaryDay() {
-    var d = new Date();
+    var d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
     return d.getDate() === 7 && d.getMonth() === 4; // May 7
   }
 
