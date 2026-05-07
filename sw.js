@@ -1,5 +1,5 @@
 // Service Worker — caches scanner libs offline; HTML is always fresh; handles push notifications.
-const CACHE = 'rish-ofs-v23-anniv-letter';
+const CACHE = 'rish-ofs-v24-anniv-story-may7';
 
 // ── Push notification handlers ──
 self.addEventListener('push', e => {

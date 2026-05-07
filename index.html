@@ -14855,18 +14855,294 @@ function playAnnivSong() {
    ANNIVERSARY EXPERIENCE — 7 May 2026
    Local device time. Runs once per device (localStorage flag).
 ═══════════════════════════════════════════════════════════════ */
-function triggerAnniversaryExperience(){
-  // Use Frankfurt time (Europe/Berlin) regardless of device timezone
+// ── Anniversary windows: 5 slots throughout May 7 Frankfurt time ──
+const ANNIV_WINDOWS = [
+  { start: 8*60,  end: 9*60,  id: 'morning' },     // 8-9 AM
+  { start: 12*60, end: 13*60, id: 'noon' },        // 12-1 PM
+  { start: 15*60, end: 16*60, id: 'afternoon' },   // 3-4 PM
+  { start: 18*60, end: 20*60, id: 'evening' },     // 6-8 PM
+  { start: 22*60, end: 24*60, id: 'night' },       // 10-12 PM
+];
+
+function _annivCurrentWindow() {
   const fr = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
-  const isAnniversary =
-    fr.getMonth() === 4 && // May = 4
-    fr.getDate() === 7;
+  if (fr.getMonth() !== 4 || fr.getDate() !== 7) return null;
+  const mins = fr.getHours() * 60 + fr.getMinutes();
+  for (const w of ANNIV_WINDOWS) {
+    if (mins >= w.start && mins < w.end) {
+      const key = `rish_anniv_${fr.getFullYear()}_${w.id}`;
+      if (!localStorage.getItem(key)) return { window: w, key };
+    }
+  }
+  return null;
+}
 
-  if (!isAnniversary) return;
+function triggerAnniversaryExperience(){
+  // Skip the legacy line-by-line cinematic — we now use the full editorial story
+  return;
+}
+
+function triggerAnniversaryStory(force){
+  if (document.getElementById('anniv-story')) return; // already showing
+  if (!force) {
+    const m = _annivCurrentWindow();
+    if (!m) return;
+    localStorage.setItem(m.key, '1');
+  }
+  _buildAnnivStoryOverlay();
+}
+
+// Periodic check every 60s — fires when current Frankfurt time enters a new window
+setInterval(() => { try { triggerAnniversaryStory(false); } catch(e){} }, 60 * 1000);
+
+// Also trigger on visibilitychange (when she returns to the app)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { try { triggerAnniversaryStory(false); } catch(e){} }
+});
+
+function _buildAnnivStoryOverlay() {
+  const root = document.createElement('div');
+  root.id = 'anniv-story';
+  root.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0606';
+  // Inject scoped CSS
+  const css = document.createElement('style');
+  css.textContent = `
+    #anniv-story *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    #anniv-story{font-family:'Playfair Display',serif;color:#f3e8dc;-webkit-font-smoothing:antialiased;letter-spacing:0.005em;overflow:hidden}
+    #as-launch{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0606;transition:opacity 1.6s ease;padding:40px 28px;overflow:hidden}
+    #as-launch.gone{opacity:0;pointer-events:none}
+    #as-launch::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 100%,rgba(122,24,40,0.45) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 50% 0%,rgba(82,19,28,0.35) 0%,transparent 55%),radial-gradient(ellipse 100% 80% at 50% 50%,transparent 30%,rgba(0,0,0,0.6) 80%);animation:as-breath 8s ease-in-out infinite;pointer-events:none}
+    @keyframes as-breath{0%,100%{opacity:1}50%{opacity:0.85}}
+    .as-frame{position:absolute;inset:24px;border:1px solid rgba(200,168,101,0.18);pointer-events:none;z-index:1}
+    .as-frame::before,.as-frame::after{content:'';position:absolute;width:24px;height:24px;border:1px solid rgba(200,168,101,0.4)}
+    .as-frame::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+    .as-frame::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+    .as-orn{position:absolute;font-size:11px;color:#e0c280;letter-spacing:0.4em;opacity:0.7;z-index:2;font-family:'Cormorant Garamond',serif;font-style:italic;text-transform:uppercase}
+    .as-orn.tr{top:36px;right:40px}
+    .as-orn.bl{bottom:36px;left:40px;text-align:right}
+    .as-year{position:relative;z-index:3;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:#c8a865;letter-spacing:0.6em;text-transform:uppercase;margin-bottom:auto;padding-top:60px;font-weight:500}
+    .as-center{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;justify-content:center;width:100%}
+    .as-five{font-family:'Italiana',serif;font-size:clamp(56px,16vw,140px);color:#f3e8dc;letter-spacing:0.05em;line-height:0.95;text-shadow:0 8px 60px rgba(168,48,66,0.45);margin-bottom:8px}
+    .as-divider{width:60px;height:1px;background:linear-gradient(90deg,transparent,#c8a865,transparent);margin:18px auto}
+    .as-eyebrow{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;color:rgba(243,232,220,0.7);letter-spacing:0.35em;text-transform:uppercase;margin-bottom:20px;font-weight:400}
+    .as-script{font-family:'Italianno',cursive;font-size:clamp(36px,9vw,64px);color:#e8c4be;line-height:1;letter-spacing:0;text-shadow:0 4px 30px rgba(168,48,66,0.4)}
+    .as-bottom{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;margin-top:auto;padding-bottom:30px;width:100%}
+    #as-startBtn{padding:18px 48px;background:transparent;border:1px solid rgba(200,168,101,0.4);border-radius:0;color:#f3e8dc;font-family:'Cormorant Garamond',serif;font-size:13px;font-style:italic;letter-spacing:0.45em;text-transform:uppercase;cursor:pointer;transition:all 0.6s ease;font-weight:500}
+    #as-startBtn:hover,#as-startBtn:active{background:rgba(200,168,101,0.08);letter-spacing:0.55em;border-color:#c8a865}
+    #as-startBtn::before{content:'⊰';margin-right:18px;color:#c8a865;font-style:normal}
+    #as-startBtn::after{content:'⊱';margin-left:18px;color:#c8a865;font-style:normal}
+    .as-tagline{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:rgba(243,232,220,0.4);letter-spacing:0.3em;text-transform:uppercase;margin-top:18px}
+    .as-close-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border:none;background:rgba(200,168,101,0.12);color:#c8a865;font-size:14px;cursor:pointer;z-index:35;border-radius:50%;backdrop-filter:blur(4px)}
+
+    #as-intro{position:absolute;inset:0;z-index:25;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;transition:opacity 1.6s;padding:40px;pointer-events:none}
+    #as-intro.gone{opacity:0}
+    .as-intro-line{font-family:'Playfair Display',serif;font-size:clamp(20px,4.5vw,30px);font-style:italic;font-weight:300;color:#f3e8dc;text-align:center;line-height:1.55;opacity:0;transform:translateY(14px);transition:all 1.6s ease;text-shadow:0 4px 30px rgba(0,0,0,0.95);max-width:680px;margin-bottom:18px;letter-spacing:0.01em}
+    .as-intro-line.visible{opacity:1;transform:translateY(0)}
+    .as-intro-line.script{font-family:'Italianno',cursive;font-size:clamp(40px,11vw,72px);color:#e8c4be;line-height:1;font-style:normal;letter-spacing:0;font-weight:400}
+    .as-intro-line.eyebrow{font-family:'Cormorant Garamond',serif;font-size:11px;color:rgba(200,168,101,0.6);letter-spacing:0.5em;text-transform:uppercase;font-style:italic;margin-top:12px}
+
+    #as-stage{position:absolute;inset:0;background:#0a0606;z-index:1}
+    .as-photo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 1.8s cubic-bezier(0.4,0,0.2,1);pointer-events:none;overflow:hidden}
+    .as-photo.show{opacity:1;z-index:2}
+    .as-photo img{max-width:84%;max-height:80%;object-fit:contain;border-radius:2px;box-shadow:0 0 0 1px rgba(200,168,101,0.15),0 0 80px rgba(122,24,40,0.25),0 30px 90px rgba(0,0,0,0.7);transition:transform 9s cubic-bezier(0.4,0,0.2,1);transform:scale(1.06);background:#000}
+    .as-photo.show img{transform:scale(1.0)}
+    .as-photo::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 60% at center,transparent 50%,rgba(0,0,0,0.4) 95%)}
+
+    #as-ambient{position:absolute;inset:0;pointer-events:none;z-index:3;background:radial-gradient(ellipse 70% 50% at 50% 100%,rgba(122,24,40,0.30) 0%,transparent 55%),radial-gradient(ellipse 50% 30% at 50% 0%,rgba(82,19,28,0.20) 0%,transparent 50%),radial-gradient(ellipse 90% 70% at center,transparent 40%,rgba(0,0,0,0.55) 95%);animation:as-breath 10s ease-in-out infinite}
+    #as-aisle-glow{position:absolute;left:0;right:0;bottom:0;height:40vh;pointer-events:none;z-index:4;background:linear-gradient(180deg,transparent 0%,rgba(82,19,28,0.15) 60%,rgba(122,24,40,0.35) 100%);mix-blend-mode:multiply}
+    #as-vignette{position:absolute;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse 100% 100% at center,transparent 50%,rgba(0,0,0,0.5) 100%)}
+
+    #as-chapter-bar{position:absolute;left:0;right:0;top:38px;z-index:10;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transition:opacity 1.6s ease}
+    #as-chapter-bar.show{opacity:1}
+    #as-chapter-num{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10px;color:#c8a865;letter-spacing:0.5em;text-transform:uppercase;font-weight:500}
+    #as-chapter{font-family:'Italiana',serif;font-size:14px;color:#f3e8dc;letter-spacing:0.45em;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,0.95);font-weight:400}
+    #as-chapter::before{content:'⊰';margin-right:14px;color:#c8a865;opacity:0.7}
+    #as-chapter::after{content:'⊱';margin-left:14px;color:#c8a865;opacity:0.7}
+    #as-caption{position:absolute;left:0;right:0;bottom:60px;text-align:center;z-index:10;font-family:'Italianno',cursive;font-size:36px;color:#e8c4be;opacity:0;transition:opacity 1.4s;text-shadow:0 2px 24px rgba(0,0,0,0.95);padding:0 30px;line-height:1;letter-spacing:0.01em}
+    #as-caption.show{opacity:1}
+    #as-prog{position:absolute;left:30px;right:30px;bottom:24px;height:1px;background:rgba(200,168,101,0.12);z-index:8}
+    #as-prog-fill{height:100%;width:0;background:linear-gradient(90deg,#52131c,#a83042,#c8a865);transition:width 0.3s linear;box-shadow:0 0 8px rgba(200,168,101,0.3)}
+
+    #as-letter{position:absolute;inset:0;z-index:90;background:radial-gradient(ellipse at top,#3a0a14 0%,#0a0606 75%);display:none;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+    #as-letter.show{display:flex;animation:as-letterIn 2s ease}
+    @keyframes as-letterIn{from{opacity:0}to{opacity:1}}
+    #as-letter-card{max-width:480px;width:100%;background:linear-gradient(180deg,#fbf4eb 0%,#f3e6d4 100%);color:#1a0a08;border-radius:2px;padding:50px 38px 32px;text-align:center;position:relative;z-index:2;animation:as-cardUp 1.6s ease 0.5s both;box-shadow:0 0 0 1px rgba(122,24,40,0.4),0 0 0 6px #fbf4eb,0 0 0 7px rgba(200,168,101,0.5),0 0 0 12px #fbf4eb,0 0 0 13px rgba(122,24,40,0.3),0 50px 120px rgba(122,24,40,0.6)}
+    @keyframes as-cardUp{from{opacity:0;transform:translateY(40px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+    #as-letter-card::before{content:'⊰      ✦      ⊱';position:absolute;top:18px;left:0;right:0;font-family:'Cormorant Garamond',serif;font-size:14px;color:#c8a865;letter-spacing:6px}
+    #as-letter-card::after{content:'⊰     ❀     ⊱';position:absolute;bottom:18px;left:0;right:0;font-family:'Cormorant Garamond',serif;font-size:13px;color:rgba(122,24,40,0.5);letter-spacing:8px}
+    .as-lt-eyebrow{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10px;color:#7a1828;letter-spacing:0.55em;text-transform:uppercase;margin-bottom:14px;font-weight:500}
+    .as-lt-title{font-family:'Italiana',serif;font-size:38px;color:#7a1828;letter-spacing:0.04em;margin:0 0 8px;font-weight:400;line-height:1.1}
+    .as-lt-script{font-family:'Italianno',cursive;font-size:42px;color:#a83042;line-height:1;margin-bottom:24px}
+    .as-lt-divider{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0}
+    .as-lt-divider::before,.as-lt-divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(122,24,40,0.4),transparent)}
+    .as-lt-divider span{font-size:18px;color:#7a1828}
+    #as-letter-body{font-family:'Cormorant Garamond',serif;font-size:16.5px;font-style:italic;line-height:2;color:#1a0a04;text-align:left;font-weight:400}
+    #as-letter-body p{margin-bottom:11px}
+    #as-letter-body strong{font-style:normal;color:#7a1828;font-weight:600;font-family:'Playfair Display',serif;font-size:15.5px}
+    #as-letter-body em{font-family:'Italianno',cursive;font-size:24px;font-style:normal;color:#a83042;line-height:1}
+    #as-promises{font-family:'Cormorant Garamond',serif;font-size:15.5px;font-style:italic;line-height:1.95;color:#1a0a04;text-align:center;margin:18px 0}
+    #as-promises p{margin-bottom:8px}
+    #as-promises p:first-child{font-family:'Italianno',cursive;font-size:30px;color:#7a1828;margin-bottom:14px;line-height:1;font-style:normal}
+    #as-promises p:last-child{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:#7a1828;margin-top:14px;letter-spacing:0.05em;font-style:italic}
+    #as-letter-quote{margin:22px -8px;padding:18px 22px;background:rgba(122,24,40,0.04);border-top:1px solid rgba(122,24,40,0.2);border-bottom:1px solid rgba(122,24,40,0.2);font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:#1a0a08;text-align:center;line-height:1.85}
+    #as-letter-quote .ic{font-size:11px;color:#c8a865;letter-spacing:0.5em;text-transform:uppercase;display:block;margin-bottom:8px;font-style:normal}
+    #as-letter-sign{font-family:'Italianno',cursive;font-size:34px;color:#7a1828;text-align:right;margin-top:16px;line-height:1}
+    #as-letter-date{font-family:'Cormorant Garamond',serif;font-size:11px;color:rgba(122,24,40,0.6);text-align:right;margin-top:6px;letter-spacing:0.3em;text-transform:uppercase;font-style:italic;font-weight:500}
+    #as-letter-card button{margin-top:28px;width:100%;padding:16px;border:1px solid #7a1828;border-radius:0;background:transparent;color:#7a1828;font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:500;font-style:italic;cursor:pointer;letter-spacing:0.45em;text-transform:uppercase;transition:all 0.4s}
+    #as-letter-card button:hover,#as-letter-card button:active{background:#7a1828;color:#fbf4eb}
+  `;
+  root.appendChild(css);
+
+  root.innerHTML += `
+    <button class="as-close-x" onclick="document.getElementById('anniv-story').remove()">✕</button>
+    <div id="as-launch">
+      <div class="as-frame"></div>
+      <div class="as-orn tr">⊰ Marburg · 2026 ⊱</div>
+      <div class="as-orn bl">A &amp; R<br>est. 2021</div>
+      <div class="as-year">May · MMXXVI</div>
+      <div class="as-center">
+        <div class="as-eyebrow">Five Years</div>
+        <div class="as-five">V</div>
+        <div class="as-divider"></div>
+        <div class="as-script">of us</div>
+      </div>
+      <div class="as-bottom">
+        <button id="as-startBtn">Begin</button>
+        <div class="as-tagline">a love letter, in motion</div>
+      </div>
+    </div>
+
+    <div id="as-intro">
+      <div class="as-intro-line">Don't rush…</div>
+      <div class="as-intro-line script">this is for you</div>
+      <div class="as-intro-line eyebrow">⊰  turn the volume up  ⊱</div>
+    </div>
+
+    <div id="as-stage"></div>
+    <div id="as-ambient"></div>
+    <div id="as-aisle-glow"></div>
+    <div id="as-vignette"></div>
+
+    <div id="as-chapter-bar">
+      <div id="as-chapter-num">Chapter I</div>
+      <div id="as-chapter">Hawayein</div>
+    </div>
+    <div id="as-caption"></div>
+
+    <div id="as-letter">
+      <div id="as-letter-card">
+        <div class="as-lt-eyebrow">Half a Decade · MMXXI – MMXXVI</div>
+        <div class="as-lt-title">FOR YOU</div>
+        <div class="as-lt-script">my love</div>
+        <div id="as-letter-body">
+          <p>To my Bebu,</p>
+          <p>These five years haven't just passed — <strong>they've been lived.</strong></p>
+          <p>Every photograph here is a moment <strong>I'd choose again.</strong></p>
+          <p>Every ordinary day with you felt extraordinary.</p>
+          <p>Thank you for staying. <strong>Thank you for being mine.</strong></p>
+        </div>
+        <div class="as-lt-divider"><span>✦</span></div>
+        <div id="as-promises">
+          <p>my promise</p>
+          <p>For all the years ahead,</p>
+          <p>I will keep choosing you —</p>
+          <p>on the hard days, the ordinary days,</p>
+          <p>the days that won't make it to photographs.</p>
+          <p>Every single one I get.</p>
+        </div>
+        <div id="as-letter-quote">
+          <span class="ic">— a song for you —</span>
+          Tujhme rab dikhta hai, yaara main kya karoon…<br>
+          Sajde sar jhukta hai, yaara main kya karoon…
+        </div>
+        <div id="as-letter-sign">— always &amp; forever, Rishi</div>
+        <div id="as-letter-date">7 May 2026 · Dublin to Marburg</div>
+        <button onclick="document.getElementById('anniv-story').remove()">Close</button>
+      </div>
+    </div>
+
+    <div id="as-prog"><div id="as-prog-fill"></div></div>
+    <audio id="as-audio" preload="auto"><source src="anniv-assets/song.mp3" type="audio/mpeg"></audio>
+  `;
+  document.body.appendChild(root);
+
+  // Build photo elements
+  const TOTAL = 36;
+  const stage = root.querySelector('#as-stage');
+  for (let i = 1; i <= TOTAL; i++) {
+    const p = document.createElement('div');
+    p.className = 'as-photo'; p.dataset.i = i;
+    p.innerHTML = `<img src="anniv-assets/photos/p${String(i).padStart(2,'0')}.jpg" alt="">`;
+    stage.appendChild(p);
+  }
+
+  const CHAPTERS = [
+    { t: 0,   num: 'Chapter I',   name: 'Hawayein' },
+    { t: 30,  num: 'Chapter II',  name: 'Raabta' },
+    { t: 82,  num: 'Chapter III', name: 'Tum Se Hi' },
+    { t: 128, num: 'Chapter IV',  name: 'Tujhme Rab Dikhta Hai' },
+  ];
+  const CAPS = ['','the beginning','','first laughs','','becoming us','','every season','','long talks','','small adventures','','','just you','','home','','every road','','every flight','','every quiet morning','','','every ordinary day','','','all the silly ones','','','us, always','','','','and now — forever yours'];
+  const TIMES = [];
+  const lastT = 128;
+  for (let i = 1; i <= TOTAL - 1; i++) TIMES.push({ photo: i, t: ((i-1)/(TOTAL-1)) * lastT });
+  TIMES.push({ photo: TOTAL, t: lastT });
+
+  const audio = root.querySelector('#as-audio');
+  const photos = stage.querySelectorAll('.as-photo');
+  const chBar = root.querySelector('#as-chapter-bar');
+  const chEl = root.querySelector('#as-chapter');
+  const chNum = root.querySelector('#as-chapter-num');
+  const capEl = root.querySelector('#as-caption');
+  const fill = root.querySelector('#as-prog-fill');
+  const introBox = root.querySelector('#as-intro');
+  const introLines = introBox.querySelectorAll('.as-intro-line');
+  const letter = root.querySelector('#as-letter');
+
+  let curP = -1, curC = -1;
+  function showPhoto(n){ photos.forEach(p => p.classList.toggle('show', +p.dataset.i === n)); const c = CAPS[n-1] || ''; if (c) { capEl.classList.remove('show'); setTimeout(()=>{ capEl.textContent = c; capEl.classList.add('show'); }, 600); } else { capEl.classList.remove('show'); } }
+  function showCh(num, name){ chBar.classList.remove('show'); setTimeout(()=>{ chNum.textContent = num; chEl.textContent = name; chBar.classList.add('show'); setTimeout(()=>chBar.classList.remove('show'), 5500); }, 700); }
+  function tick(){ const t = audio.currentTime; let pIdx = 0; for (let i = 0; i < TIMES.length; i++) if (t >= TIMES[i].t) pIdx = i; else break; if (TIMES[pIdx].photo !== curP) { curP = TIMES[pIdx].photo; showPhoto(curP); } let cIdx = 0; for (let i = 0; i < CHAPTERS.length; i++) if (t >= CHAPTERS[i].t) cIdx = i; else break; if (cIdx !== curC) { curC = cIdx; showCh(CHAPTERS[cIdx].num, CHAPTERS[cIdx].name); } if (audio.duration) fill.style.width = (t/audio.duration*100)+'%'; }
+  audio.addEventListener('timeupdate', tick);
+  audio.addEventListener('ended', () => { chBar.classList.remove('show'); capEl.classList.remove('show'); setTimeout(()=>letter.classList.add('show'), 1800); });
+
+  root.querySelector('#as-startBtn').addEventListener('click', () => {
+    root.querySelector('#as-launch').classList.add('gone');
+    setTimeout(()=>introLines[0].classList.add('visible'), 800);
+    setTimeout(()=>introLines[0].classList.remove('visible'), 2800);
+    setTimeout(()=>introLines[1].classList.add('visible'), 3400);
+    setTimeout(()=>introLines[2].classList.add('visible'), 4800);
+    setTimeout(()=>introLines[1].classList.remove('visible'), 6400);
+    setTimeout(()=>introLines[2].classList.remove('visible'), 6700);
+    setTimeout(()=>introBox.classList.add('gone'), 7000);
+    setTimeout(()=>audio.play().catch(e=>console.log('audio:',e)), 900);
+  });
+}
+
+// Hook story trigger into showOpenGreeting chain (highest priority on May 7)
+const _origShowOpenGreeting_anniv = window.showOpenGreeting;
+if (typeof _origShowOpenGreeting_anniv === 'function') {
+  window.showOpenGreeting = function() {
+    // Try story first — if a window matches and not yet shown, fire it
+    try { triggerAnniversaryStory(false); } catch(e){}
+    // Continue normal chain only if story didn't fire
+    if (document.getElementById('anniv-story')) return;
+    return _origShowOpenGreeting_anniv.apply(this, arguments);
+  };
+}
+
+// LEGACY GUARD: original key — never used by new system, but stub to keep code below intact
+function _legacyAnnivKept(){
+  const fr = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  if (fr.getMonth() !== 4 || fr.getDate() !== 7) return null;
   const shownKey = 'anniversary_shown_' + fr.getFullYear();
-  if (localStorage.getItem(shownKey) === '1') return;
-
-  // Lock it immediately so a refresh mid-experience doesn't replay
+  if (localStorage.getItem(shownKey) === '1') return null;
+  return shownKey;
+}
+// keep below code from running — early-return at top of triggerAnniversaryExperience already handles it
+// (intentional dead code below preserved for SW/cache hashing)
+if (false) {
+  const shownKey = 'anniversary_shown_2026';
   localStorage.setItem(shownKey, '1');
 
   const lines = [
@@ -14973,7 +15249,7 @@ function triggerAnniversaryExperience(){
   overlay.addEventListener('click', () => {
     if (finished) closeOverlay();
   });
-}
+} // end of if(false) dead-code block (legacy line-by-line cinematic preserved)
 
 // ── Anniversary love letter popup (chains after cinematic, also accessible via button) ──
 function showAnniversaryLetterPopup() {
