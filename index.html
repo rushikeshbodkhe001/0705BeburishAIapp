@@ -5404,8 +5404,36 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
   <!-- ══════════════ FINANCE TRACKER (ENHANCED) ══════════════ -->
   <div class="screen" id="s-finance">
 
+    <!-- ── LIVE EXCHANGE RATE STRIP ── -->
+    <div id="fin-rate-strip" style="margin:12px 16px 0;background:linear-gradient(135deg,#FF9933 0%,#FFFFFF 50%,#138808 100%);border-radius:16px;padding:14px 16px;color:#141414;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,0.12);position:relative;overflow:hidden">
+      <div style="font-size:28px">🇪🇺 → 🇮🇳</div>
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:rgba(20,20,20,0.65);margin-bottom:2px">Live rate</div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#141414">1 € = ₹<span id="fin-rate-val">--</span></span>
+          <span id="fin-rate-trend" style="font-size:12px;font-weight:700"></span>
+        </div>
+        <div id="fin-rate-tip" style="font-size:11px;color:rgba(20,20,20,0.8);font-weight:600;margin-top:2px">Tap to refresh</div>
+      </div>
+      <button onclick="finRefreshRate(true)" style="background:rgba(20,20,20,0.12);border:1px solid rgba(20,20,20,0.2);border-radius:10px;padding:8px 12px;font-size:11px;font-weight:800;cursor:pointer;color:#141414;font-family:'Nunito',sans-serif">↻</button>
+    </div>
+
+    <!-- ── STIPEND COUNTDOWN CARD ── -->
+    <div id="fin-stipend-card" style="margin:10px 16px 0;background:linear-gradient(135deg,#141414,#2A2A2A,#B8860B);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(184,134,11,0.2)">
+      <div style="font-size:34px">💰</div>
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.55);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px">Next stipend</div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:#FFCE00" id="fin-stipend-days">--</span>
+          <span style="font-size:13px;color:rgba(255,255,255,0.6)">days · <span id="fin-stipend-date">--</span></span>
+        </div>
+        <div id="fin-stipend-msg" style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px"></div>
+      </div>
+      <button onclick="finEditStipend()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px 11px;font-size:10px;font-weight:800;cursor:pointer;color:#FFCE00;font-family:'Nunito',sans-serif">⚙</button>
+    </div>
+
     <!-- BALANCE CARD -->
-    <div class="fin-summary" style="margin-top:14px">
+    <div class="fin-summary" style="margin-top:12px">
       <div class="fin-bal-label">Current Balance</div>
       <div class="fin-bal" style="display:flex;align-items:baseline;gap:4px">
         <span>€</span>
@@ -8159,6 +8187,10 @@ function go(name, _internal) {
   if (name === 'camera' && typeof checkCameraPermission === 'function') {
     setTimeout(checkCameraPermission, 100);
   }
+  // Refresh finance cards (live exchange rate + stipend countdown) on Finance entry
+  if (name === 'finance') {
+    setTimeout(() => { try { finRefreshRate(false); renderStipendCard(); } catch(e){} }, 80);
+  }
   // Refresh daily essentials counts when navigating home
   if (name === 'home' && typeof updateDailyEssentialsCounts === 'function') {
     setTimeout(updateDailyEssentialsCounts, 50);
@@ -9448,6 +9480,214 @@ function renderRemit() {
   document.getElementById('remit-total').textContent = `€${totE.toFixed(2)} · ₹${Math.round(totE*108).toLocaleString()}`;
 }
 
+// ═══════════════════════════════════════════════════════════
+// 💶 LIVE EXCHANGE RATE — free ECB-style API, cached daily
+// ═══════════════════════════════════════════════════════════
+const RATE_CACHE_KEY = 'rish_eur_inr_rate';
+const RATE_HIST_KEY  = 'rish_eur_inr_hist';
+
+async function finFetchRate() {
+  try {
+    const r = await fetch('https://api.exchangerate-api.com/v4/latest/EUR');
+    const d = await r.json();
+    return d.rates && d.rates.INR ? d.rates.INR : null;
+  } catch(e) {
+    try {
+      const r = await fetch('https://open.er-api.com/v6/latest/EUR');
+      const d = await r.json();
+      return d.rates && d.rates.INR ? d.rates.INR : null;
+    } catch(e2) { return null; }
+  }
+}
+
+async function finRefreshRate(force) {
+  const cached = JSON.parse(localStorage.getItem(RATE_CACHE_KEY) || 'null');
+  const now = Date.now();
+  // Use cache if < 6 hrs old and not forced
+  if (!force && cached && (now - cached.t) < 6 * 3600 * 1000) {
+    _finRenderRate(cached.rate, cached.t);
+    return cached.rate;
+  }
+  const tip = document.getElementById('fin-rate-tip');
+  if (tip) tip.textContent = 'Fetching latest rate…';
+  const rate = await finFetchRate();
+  if (rate) {
+    const prev = cached ? cached.rate : rate;
+    localStorage.setItem(RATE_CACHE_KEY, JSON.stringify({ rate, t: now, prev }));
+    // History — keep last 14 daily values
+    const hist = JSON.parse(localStorage.getItem(RATE_HIST_KEY) || '[]');
+    const today = new Date().toISOString().slice(0,10);
+    if (!hist.find(h => h.d === today)) {
+      hist.push({ d: today, r: rate });
+      if (hist.length > 14) hist.shift();
+      localStorage.setItem(RATE_HIST_KEY, JSON.stringify(hist));
+    }
+    _finRenderRate(rate, now);
+    return rate;
+  } else if (cached) {
+    _finRenderRate(cached.rate, cached.t);
+    return cached.rate;
+  } else {
+    if (tip) tip.textContent = 'No connection — using fallback 92.5';
+    _finRenderRate(92.5, now);
+    return 92.5;
+  }
+}
+
+function _finRenderRate(rate, t) {
+  const valEl = document.getElementById('fin-rate-val');
+  const trendEl = document.getElementById('fin-rate-trend');
+  const tipEl = document.getElementById('fin-rate-tip');
+  if (!valEl) return;
+  valEl.textContent = rate.toFixed(2);
+  // Trend from history
+  const hist = JSON.parse(localStorage.getItem(RATE_HIST_KEY) || '[]');
+  if (hist.length >= 2) {
+    const last7 = hist.slice(-7);
+    const avg = last7.reduce((s,h) => s + h.r, 0) / last7.length;
+    const diff = rate - avg;
+    const pct = (diff / avg) * 100;
+    if (Math.abs(pct) < 0.3) {
+      trendEl.textContent = '→ stable';
+      trendEl.style.color = '#666';
+      if (tipEl) tipEl.textContent = '7-day average: ₹' + avg.toFixed(2);
+    } else if (diff > 0) {
+      trendEl.textContent = '↑ ' + Math.abs(diff).toFixed(2);
+      trendEl.style.color = '#138808';
+      if (tipEl) tipEl.textContent = '🟢 Good time to send money — rate is up vs 7-day avg';
+    } else {
+      trendEl.textContent = '↓ ' + Math.abs(diff).toFixed(2);
+      trendEl.style.color = '#CC0000';
+      if (tipEl) tipEl.textContent = '🟡 Wait a few days if you can — rate dipped vs avg';
+    }
+  } else {
+    trendEl.textContent = '';
+    const age = Math.round((Date.now() - t) / 3600000);
+    if (tipEl) tipEl.textContent = age < 1 ? 'Just updated' : (age + 'h ago · tap ↻ to refresh');
+  }
+  // Update existing balance INR conversion with live rate
+  window._finCurrentRate = rate;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📅 STIPEND COUNTDOWN — Max Planck monthly stipend
+// ═══════════════════════════════════════════════════════════
+function finEditStipend() {
+  const cur = localStorage.getItem('rish_stipend_day') || '1';
+  const v = prompt('Stipend deposit day each month (1-31):', cur);
+  if (!v) return;
+  const day = Math.max(1, Math.min(31, parseInt(v, 10) || 1));
+  localStorage.setItem('rish_stipend_day', String(day));
+  renderStipendCard();
+}
+function renderStipendCard() {
+  const dayEl = document.getElementById('fin-stipend-days');
+  const dateEl = document.getElementById('fin-stipend-date');
+  const msgEl = document.getElementById('fin-stipend-msg');
+  if (!dayEl) return;
+  const stipendDay = parseInt(localStorage.getItem('rish_stipend_day') || '1', 10);
+  const now = new Date();
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), stipendDay);
+  let next = thisMonth;
+  if (now.getDate() > stipendDay || (now.getDate() === stipendDay && now.getHours() >= 12)) {
+    next = new Date(now.getFullYear(), now.getMonth() + 1, stipendDay);
+  }
+  const daysLeft = Math.ceil((next - now) / 86400000);
+  dayEl.textContent = daysLeft;
+  dateEl.textContent = next.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  if (daysLeft <= 2) msgEl.textContent = '🎉 Stipend coming soon — get N26 ready!';
+  else if (daysLeft <= 7) msgEl.textContent = 'One more week. Easy steady spending now.';
+  else if (daysLeft >= 25) msgEl.textContent = '✨ Fresh stipend zone — but track every euro.';
+  else msgEl.textContent = 'Mid-month — pace yourself. ' + (daysLeft) + ' days to next deposit.';
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🧠 SMART AUTO-CATEGORIZE — detect category from description
+// ═══════════════════════════════════════════════════════════
+const FIN_CAT_RULES = [
+  { cat: '🛒 Groceries',    keys: ['aldi','lidl','rewe','edeka','penny','kaufland','netto','grocer','vegetable','milk','bread','asian market','supermarket'] },
+  { cat: '🍔 Food out',     keys: ['restaurant','cafe','starbucks','mcdonald','burger','pizza','döner','doner','curry','sushi','indian','bistro','dinner','lunch'] },
+  { cat: '🚆 Transport',    keys: ['db','bahn','train','rmv','bus','uber','bolt','taxi','flixbus','deutschland','ticket','metro','transit'] },
+  { cat: '🏠 Rent',         keys: ['rent','miete','wohngeld','wohnen','villa marburg','room','flat','housing'] },
+  { cat: '🏥 Health',       keys: ['apotheke','pharmacy','doctor','arzt','tk','aok','barmer','health','medic','dentist','clinic'] },
+  { cat: '👕 Shopping',     keys: ['h&m','zara','primark','uniqlo','tk maxx','dm','rossmann','clothes','shopping','shoes'] },
+  { cat: '📱 Phone/SIM',    keys: ['vodafone','o2','telekom','aldi talk','congstar','sim','phone bill','data plan'] },
+  { cat: '🎓 Study',        keys: ['book','lab','printer','semester','university','library','stationery','study','conference'] },
+  { cat: '☕ Coffee',        keys: ['coffee','kaffee','cappuccino','latte','espresso','tchibo'] },
+  { cat: '🎉 Fun',          keys: ['cinema','movie','party','concert','event','beer','wine','bar','pub','club','netflix','spotify'] },
+  { cat: '💰 Stipend',      keys: ['stipend','salary','scholarship','max planck','daad','grant','fellowship'] },
+  { cat: '🇮🇳 Sent home',   keys: ['wise','remit','sent home','transferwise','remitly','xoom','india','aai','aaj','mom','dad'] },
+];
+function finAutoCategorize(desc) {
+  if (!desc) return null;
+  const lower = desc.toLowerCase();
+  for (const rule of FIN_CAT_RULES) {
+    for (const k of rule.keys) {
+      if (lower.includes(k)) return rule.cat;
+    }
+  }
+  return null;
+}
+// Hook into description input — auto-suggest as she types
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const desc = document.getElementById('fin-desc');
+    const cat = document.getElementById('fin-cat');
+    if (!desc || !cat) return;
+    desc.addEventListener('input', () => {
+      const suggested = finAutoCategorize(desc.value);
+      if (suggested) {
+        for (const opt of cat.options) {
+          if (opt.text === suggested) { cat.value = suggested; cat.style.boxShadow = '0 0 0 2px rgba(255,206,0,0.4)'; setTimeout(()=>{cat.style.boxShadow=''},1500); break; }
+        }
+      }
+    });
+  }, 1000);
+});
+
+// ═══════════════════════════════════════════════════════════
+// 🌅 SUNDAY WEEKLY SUMMARY POPUP
+// ═══════════════════════════════════════════════════════════
+function maybeShowSundaySummary() {
+  const mb = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  if (mb.getDay() !== 0) return false;            // 0 = Sunday
+  if (mb.getHours() < 9 || mb.getHours() >= 14) return false;
+  const today = mb.toISOString().slice(0,10);
+  if (localStorage.getItem('rish_sunday_summary_' + today)) return false;
+  if (!Array.isArray(window.transactions) || transactions.length === 0) return false;
+  localStorage.setItem('rish_sunday_summary_' + today, '1');
+
+  // Compute last 7 days
+  const weekAgo = Date.now() - 7 * 86400000;
+  const weekTx = transactions.filter(t => (t.ts || 0) >= weekAgo);
+  const weekExp = weekTx.filter(t => t.type === 'expense').reduce((s,t) => s + t.amt, 0);
+  const weekInc = weekTx.filter(t => t.type === 'income').reduce((s,t) => s + t.amt, 0);
+  const byCat = {};
+  weekTx.filter(t => t.type === 'expense').forEach(t => { byCat[t.cat] = (byCat[t.cat] || 0) + t.amt; });
+  const topCats = Object.entries(byCat).sort((a,b) => b[1] - a[1]).slice(0, 3);
+
+  const ov = document.createElement('div');
+  ov.id = 'sunday-summary';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);backdrop-filter:blur(22px);display:flex;align-items:center;justify-content:center;padding:24px;animation:greetIn 0.5s ease';
+  ov.innerHTML = '<div style="max-width:360px;width:100%;background:var(--card);border-radius:20px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,0.4)">' +
+    '<div style="text-align:center;margin-bottom:18px">' +
+    '<div style="font-size:46px;margin-bottom:6px">🌅</div>' +
+    '<div style="font-size:11px;font-weight:800;color:#B8860B;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px">Sunday Recap</div>' +
+    '<div style="font-family:\'Playfair Display\',serif;font-size:20px;color:var(--text);font-weight:600">Your week, in money</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
+    '<div style="background:linear-gradient(135deg,#4CAF50,#2E7D32);border-radius:12px;padding:12px;color:#fff"><div style="font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;opacity:0.85">Income</div><div style="font-family:\'Playfair Display\',serif;font-size:22px;font-weight:600;margin-top:2px">€' + weekInc.toFixed(0) + '</div></div>' +
+    '<div style="background:linear-gradient(135deg,#CC0000,#7a0010);border-radius:12px;padding:12px;color:#fff"><div style="font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;opacity:0.85">Spent</div><div style="font-family:\'Playfair Display\',serif;font-size:22px;font-weight:600;margin-top:2px">€' + weekExp.toFixed(0) + '</div></div>' +
+    '</div>' +
+    (topCats.length ? '<div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Top spending</div>' + topCats.map(([c,a]) => '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--cream);border-radius:10px;margin-bottom:6px;font-size:13px"><span style="font-weight:700">' + c + '</span><span style="font-weight:800;color:var(--text)">€' + a.toFixed(2) + '</span></div>').join('') : '') +
+    '<div style="margin-top:14px;padding:12px;background:rgba(184,134,11,0.08);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.6;text-align:center"><strong>Net: €' + (weekInc - weekExp).toFixed(2) + '</strong> · ' + (weekExp > weekInc ? 'overspent this week' : 'good week, on track!') + '</div>' +
+    '<button onclick="document.getElementById(\'sunday-summary\').remove();go(\'finance\')" style="width:100%;margin-top:14px;padding:14px;border:none;border-radius:100px;background:linear-gradient(135deg,#B8860B,#FFCE00);color:#141414;font-size:13px;font-weight:800;font-family:\'Nunito\',sans-serif;cursor:pointer">Open Finance →</button>' +
+    '<button onclick="document.getElementById(\'sunday-summary\').remove()" style="width:100%;margin-top:6px;padding:10px;border:none;border-radius:100px;background:transparent;color:var(--text3);font-size:11px;font-weight:700;font-family:\'Nunito\',sans-serif;cursor:pointer">Later</button>' +
+    '</div>';
+  document.body.appendChild(ov);
+  return true;
+}
+
 function renderFinance() {
   const income = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
   const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
@@ -9458,7 +9698,8 @@ function renderFinance() {
   const dailyRate = daysPassed > 0 ? expense / daysPassed : 0;
   const projected = dailyRate * daysInMonth;
   document.getElementById('fin-balance').textContent = balance.toFixed(2);
-  document.getElementById('fin-bal-inr').textContent = '₹ ' + Math.round(balance * 108).toLocaleString() + ' approx';
+  const liveRate = window._finCurrentRate || 92.5;
+  document.getElementById('fin-bal-inr').textContent = '₹ ' + Math.round(balance * liveRate).toLocaleString() + ' approx';
   document.getElementById('fin-total-inc').textContent = '€' + income.toFixed(0);
   document.getElementById('fin-total-exp').textContent = '€' + expense.toFixed(0);
   document.getElementById('fin-days-left').textContent = daysLeft + 'd';
@@ -13395,6 +13636,7 @@ function showOpenGreeting() {
   if (showMotivationMondayPopup()) return;
   if (showTodoReminderPopup()) return;
   if (maybeShowHealthNudgePopup()) return;
+  if (maybeShowSundaySummary()) return;
 
   // Use sessionStorage so greeting shows on every fresh page load/open
   if (sessionStorage.getItem('rish_greeted')) return;
