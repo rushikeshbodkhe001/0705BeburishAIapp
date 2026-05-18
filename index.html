@@ -9817,35 +9817,39 @@ function renderBudgetBars() {
 let singRecorder = null;
 let singChunks = [];
 
+// One-time migration: clear stale cached song list with wrong IDs (v2 fix)
+if (!localStorage.getItem('rish_songs_v2_migrated')) {
+  localStorage.removeItem('rish_songs');
+  localStorage.setItem('rish_songs_v2_migrated', '1');
+}
 const SONGS = JSON.parse(localStorage.getItem('rish_songs') || 'null') || [
-  {n:"Ka Kalena",a:"Marathi · ❤️ Our Song",e:"🧡",url:"https://open.spotify.com/track/0U9a0NZ8UQpnix2lBElFAx"},
-  {n:"Kadhi Tu",a:"Marathi · ❤️ Our Song",e:"❤️",url:"https://open.spotify.com/track/251PNRmJU9KcUnFQAB5t6I"},
-  {n:"Tumse Hi",a:"Mohit Chauhan · Jab We Met",e:"⭐",url:"https://open.spotify.com/track/6rEehszJ1hFKconmFFGJBt"},
-  {n:"Ladki Kyun",a:"Shaan · Hum Tum",e:"🌸",url:"https://open.spotify.com/track/1as3se3lgcMyc3fv5ZqSiP"},
-  {n:"Kal Ho Na Ho",a:"Sonu Nigam · KHNH",e:"🌟",url:"https://open.spotify.com/search/Kal%20Ho%20Na%20Ho%20Sonu%20Nigam"},
-  {n:"Saudebaazi",a:"Papon · Aurangzeb",e:"🎶",url:"https://open.spotify.com/search/Saudebaazi%20Papon%20Aurangzeb"},
-  {n:"Raabta (Title Track)",a:"Arijit Singh · Raabta",e:"🔗",url:"https://open.spotify.com/search/Raabta%20Title%20Track%20Arijit%20Singh"},
-  {n:"O Rangrez",a:"Javed Ali · Tanu Weds Manu Returns",e:"🎨",url:"https://open.spotify.com/search/O%20Rangrez%20Javed%20Ali"},
+  {n:"Ka Kalena",a:"Marathi · ❤️ Our Song",e:"🧡",url:"https://open.spotify.com/track/6nShhhR1LYiOOoheS3xQBL"},
+  {n:"Kadhi Tu",a:"Marathi · ❤️ Our Song",e:"❤️",url:"https://open.spotify.com/track/4HiQt4ehQpZEbNFuVzxfvi"},
+  {n:"Tum Se Hi",a:"Mohit Chauhan · Jab We Met",e:"⭐",url:"https://open.spotify.com/track/4jEn52OIli75J2GdkNtF8q"},
+  {n:"Ladki Kyon",a:"Shaan, Alka Yagnik · Hum Tum",e:"🌸",url:"https://open.spotify.com/track/0U9a0NZ8UQpnix2lBElFAx"},
+  {n:"Kal Ho Naa Ho",a:"Sonu Nigam · KHNH",e:"🌟",url:"https://open.spotify.com/track/251PNRmJU9KcUnFQAB5t6I"},
+  {n:"Saudebaazi",a:"Javed Ali, Pritam · Aakrosh",e:"🎶",url:"https://open.spotify.com/track/7lNbI1xd39QRdf6Mj8tvTv"},
+  {n:"Raabta (Title Track)",a:"Arijit Singh, Nikhita Gandhi",e:"🔗",url:"https://open.spotify.com/track/1LvOpTDkOfMZEqkr2fUgrz"},
+  {n:"O Rangrez",a:"Javed Bashir · Bhaag Milkha Bhaag",e:"🎨",url:"https://open.spotify.com/track/03Iuqy6uN1LfXBelHpgwvX"},
+  {n:"Hawayein",a:"Arijit Singh · JHMS",e:"🌸",url:"https://open.spotify.com/track/6871FKHumiy1Wfr6vF7Xxt"},
+  {n:"Bekhayali",a:"Sachet Tandon · Kabir Singh",e:"🎸",url:"https://open.spotify.com/track/1feANd8EfcDP5UqSvbheM3"},
+  {n:"Ik Vaari Aa",a:"Arijit Singh · Raabta",e:"✈️",url:"https://open.spotify.com/track/5lrA2NzUxmBjKr2tCZfMtl"},
+  {n:"Khairiyat",a:"Arijit Singh · Chhichhore",e:"💌",url:"https://open.spotify.com/track/5O932cZmzOZGOGZz9RHx20"},
+  {n:"Tera Ban Jaunga",a:"Akhil Sachdeva, Tulsi Kumar · Kabir Singh",e:"🧡",url:"https://open.spotify.com/track/4OcvkkpF3xmyCGGY5IBlgi"},
+  {n:"Pehla Nasha",a:"Udit Narayan, Sadhana Sargam",e:"🌟",url:"https://open.spotify.com/track/3W7xBkYIHuvE7lpcHT32P6"},
+  {n:"Mann Mera",a:"Gajendra Verma · Table No. 21",e:"🎵",url:"https://open.spotify.com/track/0mwAlZqPUWpZJIut93y40W"},
+  {n:"Lag Ja Gale",a:"Lata Mangeshkar · Woh Kaun Thi",e:"🌹",url:"https://open.spotify.com/track/1KZnTkxP6DBtuXsNuzQ0nj"},
+  {n:"Tere Bin",a:"Rahat Fateh Ali Khan, Asees Kaur · Simmba",e:"💙",url:"https://open.spotify.com/track/4Y1Sd0fSSxHEMrWkd2x3EW"},
+  {n:"Phir Mohabbat",a:"Arijit Singh · Murder 2",e:"🎶",url:"https://open.spotify.com/track/4RCd3Gdtt3dNedof64hqRD"},
+  {n:"Mast Magan",a:"Arijit Singh, Chinmayi · 2 States",e:"💃",url:"https://open.spotify.com/track/5bVmOD7UKfP2iLFUGMtdnS"},
+  {n:"Tera Hone Laga Hoon",a:"Atif Aslam · Ajab Prem Ki Ghazab Kahani",e:"🌙",url:"https://open.spotify.com/track/48Ix6ReYdJf2H4mKb3TIpj"},
+  {n:"Tere Liye",a:"Atif Aslam, Shreya Ghoshal · Prince",e:"🎀",url:"https://open.spotify.com/track/3hbgpD7TsUA1ty3qjyfYy5"},
+  {n:"Aaj Phir",a:"Arijit Singh, Samira · Hate Story 2",e:"🫀",url:"https://open.spotify.com/track/0ZHFETB0WhGiceeiKWxkTI"},
+  {n:"Channa Mereya",a:"Arijit Singh · Ae Dil Hai Mushkil",e:"✨",url:"https://open.spotify.com/track/0H2iJVgorRR0ZFgRqGUjUM"},
+  {n:"Tum Hi Ho",a:"Arijit Singh · Aashiqui 2",e:"❤️",url:"https://open.spotify.com/track/7LfIX3DCzl3AtGJWlCKOKK"},
+  {n:"Qaafirana",a:"Arijit Singh, Nikhita Gandhi · Kedarnath",e:"🔥",url:"https://open.spotify.com/search/Qaafirana%20Kedarnath%20Arijit%20Singh"},
+  {n:"Dil Ko Karaar Aaya",a:"Neha Kakkar, YasserDesai",e:"💞",url:"https://open.spotify.com/search/Dil%20Ko%20Karaar%20Aaya%20Neha%20Kakkar"},
   {n:"Baby",a:"Justin Bieber ft. Ludacris",e:"👶",url:"https://open.spotify.com/search/Baby%20Justin%20Bieber%20Ludacris"},
-  {n:"Hawayein",a:"Arijit Singh · JHMS",e:"🌸",url:"https://open.spotify.com/search/Hawayein%20Arijit%20Singh"},
-  {n:"Bekhayali",a:"Sachet Tandon · Kabir Singh",e:"🎸",url:"https://open.spotify.com/search/Bekhayali%20Sachet%20Tandon"},
-  {n:"Ik Vaari Aa",a:"Arijit Singh · Raabta",e:"✈️",url:"https://open.spotify.com/search/Ik%20Vaari%20Aa%20Arijit%20Singh"},
-  {n:"Khairiyat",a:"Arijit Singh · Chhichhore",e:"💌",url:"https://open.spotify.com/search/Khairiyat%20Arijit%20Singh"},
-  {n:"Tumse Hi",a:"Mohit Chauhan · Jab We Met",e:"⭐",url:"https://open.spotify.com/search/Tumse%20Hi%20Mohit%20Chauhan"},
-  {n:"Tera Ban Jaunga",a:"Akhil Sachdeva · Kabir Singh",e:"🧡",url:"https://open.spotify.com/search/Tera%20Ban%20Jaunga%20Akhil%20Sachdeva"},
-  {n:"Pehla Nasha",a:"Udit Narayan · Jo Jeeta Wohi Sikandar",e:"🌟",url:"https://open.spotify.com/search/Pehla%20Nasha%20Udit%20Narayan"},
-  {n:"Mann Mera",a:"Gajendra Verma · Table No. 21",e:"🎵",url:"https://open.spotify.com/search/Mann%20Mera%20Gajendra%20Verma"},
-  {n:"Lag Ja Gale",a:"Lata Mangeshkar",e:"🌹",url:"https://open.spotify.com/search/Lag%20Ja%20Gale%20Lata%20Mangeshkar"},
-  {n:"Qaafirana",a:"Arijit Singh · Kesari",e:"🔥",url:"https://open.spotify.com/search/Qaafirana%20Arijit%20Singh"},
-  {n:"Tere Bin",a:"Rahat Fateh Ali Khan · Bas Ek Pal",e:"💙",url:"https://open.spotify.com/search/Tere%20Bin%20Rahat%20Fateh%20Ali%20Khan"},
-  {n:"Phir Mohabbat",a:"Arijit Singh · Murder 2",e:"🎶",url:"https://open.spotify.com/search/Phir%20Mohabbat%20Arijit%20Singh"},
-  {n:"Mast Magan",a:"Arijit Singh · 2 States",e:"💃",url:"https://open.spotify.com/search/Mast%20Magan%20Arijit%20Singh"},
-  {n:"Dil Ko Karar Aaya",a:"Neha Kakkar · Rajat Nagpal",e:"💞",url:"https://open.spotify.com/search/Dil%20Ko%20Karar%20Aaya%20Neha%20Kakkar"},
-  {n:"Tera Hone Laga Hoon",a:"Atif Aslam · Ajab Prem",e:"🌙",url:"https://open.spotify.com/search/Tera%20Hone%20Laga%20Hoon%20Atif%20Aslam"},
-  {n:"Tere Liye",a:"KK, Sunidhi Chauhan · Prince",e:"🎀",url:"https://open.spotify.com/search/Tere%20Liye%20KK%20Sunidhi%20Chauhan"},
-  {n:"Aaj Phir",a:"Arijit Singh · Hate Story 2",e:"🫀",url:"https://open.spotify.com/search/Aaj%20Phir%20Arijit%20Singh"},
-  {n:"Channa Mereya",a:"Arijit Singh · ADHM",e:"✨",url:"https://open.spotify.com/search/Channa%20Mereya%20Arijit%20Singh"},
-  {n:"Tum Hi Ho",a:"Arijit Singh · Aashiqui 2",e:"❤️",url:"https://open.spotify.com/search/Tum%20Hi%20Ho%20Arijit%20Singh"},
 ];
 
 // Extract track ID from a Spotify URL (returns null if it's a search URL)
