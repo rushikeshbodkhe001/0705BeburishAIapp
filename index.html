@@ -6416,8 +6416,9 @@ window.RISH_SPECIAL_SONG_B64 = "AAAAHGZ0eXBNNEEgAAAAAE00QSBpc29tbXA0MgAAAAFtZGF0
     <button class="bn-item active" id="bn-home" onclick="go('home')">
       <span class="bn-icon">🏠</span><span class="bn-label">Home</span>
     </button>
-    <button class="bn-item" id="bn-health" onclick="go('health')">
+    <button class="bn-item" id="bn-health" onclick="markHealthVisited();go('health')" style="position:relative">
       <span class="bn-icon">💚</span><span class="bn-label">Health</span>
+      <span id="health-nudge-dot" style="display:none;position:absolute;top:4px;right:18%;width:8px;height:8px;border-radius:50%;background:#FF4466;box-shadow:0 0 10px rgba(255,68,102,0.7);animation:hb 1.5s infinite"></span>
     </button>
     <button class="bn-item" id="bn-finance" onclick="go('finance')">
       <span class="bn-icon">💶</span><span class="bn-label">Finance</span>
@@ -8619,6 +8620,46 @@ function renderNotes() {
     </div>`).join('');
 }
 
+// ── Health visit tracking — gentle nudges when neglected ──
+function markHealthVisited() {
+  localStorage.setItem('rish_health_lastvisit', Date.now().toString());
+  const dot = document.getElementById('health-nudge-dot');
+  if (dot) dot.style.display = 'none';
+}
+function _daysSinceHealthVisit() {
+  const ts = parseInt(localStorage.getItem('rish_health_lastvisit') || '0', 10);
+  if (!ts) return 999;
+  return (Date.now() - ts) / 86400000;
+}
+function updateHealthNudge() {
+  const dot = document.getElementById('health-nudge-dot');
+  if (!dot) return;
+  dot.style.display = _daysSinceHealthVisit() >= 2 ? 'block' : 'none';
+}
+window.addEventListener('load', () => setTimeout(updateHealthNudge, 2000));
+setInterval(updateHealthNudge, 5 * 60 * 1000);
+
+function maybeShowHealthNudgePopup() {
+  const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' })).toISOString().slice(0,10);
+  if (localStorage.getItem('rish_health_nudge_' + today)) return false;
+  if (_daysSinceHealthVisit() < 3) return false;
+  localStorage.setItem('rish_health_nudge_' + today, '1');
+
+  const ov = document.createElement('div');
+  ov.id = 'health-nudge-popup';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);backdrop-filter:blur(22px);display:flex;align-items:center;justify-content:center;padding:30px;animation:greetIn 0.5s ease';
+  ov.innerHTML = '<div style="max-width:340px;text-align:center;color:#fff">' +
+    '<div style="font-size:56px;margin-bottom:12px;animation:hb 1.6s infinite">💚</div>' +
+    '<div style="font-size:11px;font-weight:800;color:#4CAF50;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px">A gentle check-in</div>' +
+    '<div style="font-family:\'Playfair Display\',serif;font-size:22px;color:#fff;font-weight:600;line-height:1.4;margin-bottom:14px">Take 30 seconds for you, Ankita</div>' +
+    '<div style="font-family:\'Playfair Display\',serif;font-size:14.5px;color:rgba(255,255,255,0.85);font-style:italic;line-height:1.85;margin-bottom:22px">Water today? 💧<br>A walk outside? 🚶‍♀️<br>How\'s your mood really?<br><br><span style="color:#FFCE00">One tiny log keeps you on track. ❤️</span></div>' +
+    '<button onclick="document.getElementById(\'health-nudge-popup\').remove();go(\'health\');markHealthVisited()" style="width:100%;padding:14px;border-radius:100px;border:none;background:linear-gradient(135deg,#4CAF50,#8BC34A);color:#fff;font-size:14px;font-weight:800;font-family:\'Nunito\',sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(76,175,80,0.4);margin-bottom:8px">💚 Quick check-in</button>' +
+    '<button onclick="document.getElementById(\'health-nudge-popup\').remove()" style="width:100%;padding:11px;border-radius:14px;border:none;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.55);font-size:12px;font-weight:700;font-family:\'Nunito\',sans-serif;cursor:pointer">Later</button>' +
+    '</div>';
+  document.body.appendChild(ov);
+  return true;
+}
+
 // ── TODO LIST ──
 let todos = JSON.parse(localStorage.getItem('rish_todos') || '[]');
 
@@ -9566,19 +9607,87 @@ const SONGS = JSON.parse(localStorage.getItem('rish_songs') || 'null') || [
   {n:"Tum Hi Ho",a:"Arijit Singh · Aashiqui 2",e:"❤️",url:"https://open.spotify.com/search/Tum%20Hi%20Ho%20Arijit%20Singh"},
 ];
 
+// Extract track ID from a Spotify URL (returns null if it's a search URL)
+function _spotifyTrackId(url) {
+  const m = url && url.match(/spotify\.com\/track\/([A-Za-z0-9]+)/);
+  return m ? m[1] : null;
+}
+
 function renderSongs() {
   const grid = document.getElementById('song-grid');
   if (!grid) return;
-  grid.innerHTML = SONGS.map((s,i) => `
-    <a class="song-card" href="${s.url}" target="_blank" rel="noopener">
+  grid.innerHTML = SONGS.map((s,i) => {
+    const id = _spotifyTrackId(s.url);
+    const onClick = `playSongInline(${i})`;
+    return `
+    <div class="song-card" id="song-card-${i}" onclick="${onClick}">
       <div class="song-num">${i+1}</div>
       <div class="song-disc" style="background:linear-gradient(135deg,rgba(20,20,20,0.1),rgba(204,0,0,0.1))">${s.e}</div>
       <div class="song-info">
         <div class="song-name">${s.n}</div>
         <div class="song-artist">${s.a}</div>
       </div>
-      <div style="font-size:20px;flex-shrink:0">🟢</div>
-    </a>`).join('');
+      <div style="font-size:20px;flex-shrink:0" id="song-playicon-${i}">${id ? '▶️' : '🔍'}</div>
+    </div>`;
+  }).join('');
+}
+
+let _currentSongIdx = -1;
+function playSongInline(i) {
+  const s = SONGS[i];
+  if (!s) return;
+  const id = _spotifyTrackId(s.url);
+
+  // If currently expanded on this song, collapse it (toggle)
+  if (_currentSongIdx === i) {
+    const oldPlayer = document.getElementById('song-player-' + i);
+    if (oldPlayer) oldPlayer.remove();
+    _currentSongIdx = -1;
+    return;
+  }
+  // Close any other player
+  const opened = document.querySelector('.song-inline-player');
+  if (opened) opened.remove();
+  _currentSongIdx = i;
+
+  const card = document.getElementById('song-card-' + i);
+  if (!card) return;
+
+  const wrap = document.createElement('div');
+  wrap.id = 'song-player-' + i;
+  wrap.className = 'song-inline-player';
+  wrap.style.cssText = 'margin:0 0 8px;border-radius:14px;overflow:hidden;background:#000;box-shadow:0 4px 18px rgba(0,0,0,0.2);animation:greetIn 0.4s ease';
+
+  if (id) {
+    // Direct track — embed Spotify Player. Plays 30s preview free, full song with Spotify Premium.
+    wrap.innerHTML = `
+      <iframe style="display:block;border:0;width:100%;height:152px" src="https://open.spotify.com/embed/track/${id}?utm_source=generator&autoplay=1" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+      <div style="display:flex;gap:6px;padding:6px 10px;background:#181818;border-top:1px solid rgba(255,255,255,0.08)">
+        <a href="https://open.spotify.com/track/${id}?play=true" target="_blank" style="flex:1;text-align:center;font-size:11px;font-weight:700;color:#1DB954;text-decoration:none;padding:6px;border-radius:8px;background:rgba(29,185,84,0.1)">▶ Open in Spotify app</a>
+        <button onclick="event.stopPropagation();playSongInline(${i})" style="background:rgba(255,255,255,0.08);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer">Close</button>
+      </div>`;
+  } else {
+    // Search URL — can't embed directly. Show fallback with prominent open-in-Spotify.
+    wrap.innerHTML = `
+      <div style="padding:14px 16px;background:linear-gradient(135deg,#1DB954 0%,#1A8E3F 100%);color:#fff;text-align:center">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px">${s.n}</div>
+        <div style="font-size:11px;opacity:0.85;margin-bottom:10px">${s.a}</div>
+        <a href="${s.url}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 22px;border-radius:100px;background:#fff;color:#1DB954;text-decoration:none;font-size:12px;font-weight:800">▶ Play on Spotify</a>
+      </div>
+      <div style="display:flex;justify-content:center;padding:6px;background:#181818"><button onclick="event.stopPropagation();playSongInline(${i})" style="background:transparent;color:rgba(255,255,255,0.6);border:none;font-size:11px;cursor:pointer">Close</button></div>`;
+  }
+  card.insertAdjacentElement('afterend', wrap);
+  // Visual feedback on card
+  const icon = document.getElementById('song-playicon-' + i);
+  if (icon) icon.textContent = '⏸';
+  // Reset icon when player removed
+  const observer = new MutationObserver(() => {
+    if (!document.getElementById('song-player-' + i)) {
+      if (icon) icon.textContent = id ? '▶️' : '🔍';
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
 }
 
 async function startSingRec() {
@@ -13285,6 +13394,7 @@ function showOpenGreeting() {
   if (showFirstDayPopup()) return;
   if (showMotivationMondayPopup()) return;
   if (showTodoReminderPopup()) return;
+  if (maybeShowHealthNudgePopup()) return;
 
   // Use sessionStorage so greeting shows on every fresh page load/open
   if (sessionStorage.getItem('rish_greeted')) return;
